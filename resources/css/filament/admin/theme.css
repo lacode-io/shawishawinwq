@@ -1,0 +1,31 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+/* ─── Cards & Sections ─── */
+.fi-section {
+    @apply rounded-xl shadow-sm;
+}
+
+/* ─── Tables ─── */
+.fi-ta-table {
+    @apply rounded-xl overflow-hidden;
+}
+
+/* Striped rows for readability */
+.fi-ta-row:nth-child(even) {
+    @apply bg-gray-50/50 dark:bg-white/[0.02];
+}
+
+/* Table header */
+.fi-ta-header-cell {
+    @apply bg-gray-50/80 dark:bg-gray-800/50;
+}
+
+/* ─── Stats Widgets ─── */
+.fi-wi-stats-overview-stat {
+    @apply rounded-xl shadow-sm;
+}
+
+/* ─── Badges ─── */
+.fi-badge {
+    @apply font-medium;
+}

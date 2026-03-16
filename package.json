@@ -1,0 +1,25 @@
+{
+    "$schema": "https://www.schemastore.org/package.json",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "vite build && vite build --config vite.config.filament.js",
+        "build:filament": "vite build --config vite.config.filament.js",
+        "dev": "vite",
+        "dev:filament": "vite --config vite.config.filament.js"
+    },
+    "devDependencies": {
+        "@tailwindcss/forms": "^0.5.11",
+        "@tailwindcss/typography": "^0.5.19",
+        "@tailwindcss/vite": "^4.0.0",
+        "autoprefixer": "^10.4.27",
+        "axios": "^1.11.0",
+        "concurrently": "^9.0.1",
+        "laravel-vite-plugin": "^2.0.0",
+        "postcss": "^8.5.6",
+        "postcss-nesting": "^14.0.0",
+        "tailwindcss": "^4.2.1",
+        "tailwindcss-v3": "npm:tailwindcss@^3.4.19",
+        "vite": "^7.0.7"
+    }
+}
