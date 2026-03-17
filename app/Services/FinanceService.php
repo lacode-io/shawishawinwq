@@ -11,9 +11,11 @@ use App\Models\CustomerPayment;
 use App\Models\Expense;
 use App\Models\Investor;
 use App\Models\InvestorPayout;
+use App\Models\CashRegisterTransaction;
 use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class FinanceService
 {
@@ -600,6 +602,148 @@ class FinanceService
             'current_month_profit' => $currentMonthProfit,
             'current_month_expenses' => $currentMonthExpenses['total'],
             'current_month_investor_target' => $currentMonthInvestorTarget,
+        ];
+    }
+
+    // ══════════════════════════════════════════════
+    // ── القاصة - Settlement ──
+    // ══════════════════════════════════════════════
+
+    /**
+     * رصيد القاصة الحالي
+     */
+    public function cashRegisterBalance(): int
+    {
+        return (int) Setting::instance()->cash_register_balance;
+    }
+
+    /**
+     * سجل حركات القاصة
+     */
+    public function cashRegisterTransactions(int $limit = 20): array
+    {
+        return CashRegisterTransaction::orderByDesc('created_at')
+            ->limit($limit)
+            ->get()
+            ->map(fn ($t) => [
+                'id' => $t->id,
+                'type' => $t->type,
+                'amount' => $t->amount,
+                'balance_after' => $t->balance_after,
+                'description' => $t->description,
+                'month' => $t->month,
+                'year' => $t->year,
+                'date' => $t->created_at->format('Y/m/d H:i'),
+            ])
+            ->all();
+    }
+
+    /**
+     * تصفية الحسابات لشهر معين
+     * أرباح الزبائن (فرق سعر البيع - الشراء) لهذا الشهر − تاركت المستثمرين الشهري
+     * الفائض يُضاف للقاصة والعجز يُخصم منها
+     */
+    public function settleMonth(int $month, int $year): array
+    {
+        // تحقق إن الشهر ما تمت تصفيته سابقاً
+        $alreadySettled = CashRegisterTransaction::where('month', $month)
+            ->where('year', $year)
+            ->whereIn('description', ['تصفية حسابات شهرية - فائض', 'تصفية حسابات شهرية - عجز'])
+            ->exists();
+
+        if ($alreadySettled) {
+            return ['success' => false, 'message' => 'تمت تصفية هذا الشهر مسبقاً'];
+        }
+
+        // أرباح الشهر من الزبائن (فرق سعر البيع - الشراء)
+        $monthlyProfit = (int) Customer::whereNotNull('product_cost_price')
+            ->whereMonth('delivery_date', $month)
+            ->whereYear('delivery_date', $year)
+            ->selectRaw('SUM(product_sale_total - product_cost_price) as profit')
+            ->value('profit') ?? 0;
+
+        // تاركت المستثمرين الشهري
+        $monthlyInvestorTarget = (int) Investor::where('status', InvestorStatus::Active)
+            ->sum('monthly_target_amount');
+
+        $difference = $monthlyProfit - $monthlyInvestorTarget;
+
+        return DB::transaction(function () use ($difference, $monthlyProfit, $monthlyInvestorTarget, $month, $year) {
+            $settings = Setting::instance();
+            $currentBalance = (int) $settings->cash_register_balance;
+            $newBalance = $currentBalance + $difference;
+
+            // تحديث رصيد القاصة
+            $settings->update(['cash_register_balance' => $newBalance]);
+
+            // تسجيل الحركة
+            CashRegisterTransaction::create([
+                'type' => $difference >= 0 ? 'deposit' : 'withdrawal',
+                'amount' => abs($difference),
+                'balance_after' => $newBalance,
+                'description' => $difference >= 0 ? 'تصفية حسابات شهرية - فائض' : 'تصفية حسابات شهرية - عجز',
+                'month' => $month,
+                'year' => $year,
+                'settled_by' => auth()->id(),
+            ]);
+
+            $this->flush();
+
+            return [
+                'success' => true,
+                'monthly_profit' => $monthlyProfit,
+                'monthly_investor_target' => $monthlyInvestorTarget,
+                'difference' => $difference,
+                'new_balance' => $newBalance,
+                'message' => $difference >= 0
+                    ? "تمت التصفية - فائض " . number_format(abs($difference)) . " د.ع أُضيف للقاصة"
+                    : "تمت التصفية - عجز " . number_format(abs($difference)) . " د.ع خُصم من القاصة",
+            ];
+        });
+    }
+
+    /**
+     * بيانات تصفية الشهر الحالي (معاينة قبل التنفيذ)
+     */
+    public function settlementPreview(?int $month = null, ?int $year = null): array
+    {
+        $month ??= now()->month;
+        $year ??= now()->year;
+
+        $monthlyProfit = (int) Customer::whereNotNull('product_cost_price')
+            ->whereMonth('delivery_date', $month)
+            ->whereYear('delivery_date', $year)
+            ->selectRaw('SUM(product_sale_total - product_cost_price) as profit')
+            ->value('profit') ?? 0;
+
+        $monthlyInvestorTarget = (int) Investor::where('status', InvestorStatus::Active)
+            ->sum('monthly_target_amount');
+
+        $difference = $monthlyProfit - $monthlyInvestorTarget;
+        $currentBalance = $this->cashRegisterBalance();
+
+        $alreadySettled = CashRegisterTransaction::where('month', $month)
+            ->where('year', $year)
+            ->whereIn('description', ['تصفية حسابات شهرية - فائض', 'تصفية حسابات شهرية - عجز'])
+            ->exists();
+
+        // عدد الزبائن هذا الشهر
+        $customersCount = Customer::whereNotNull('product_cost_price')
+            ->whereMonth('delivery_date', $month)
+            ->whereYear('delivery_date', $year)
+            ->count();
+
+        return [
+            'month' => $month,
+            'year' => $year,
+            'monthly_profit' => $monthlyProfit,
+            'monthly_investor_target' => $monthlyInvestorTarget,
+            'difference' => $difference,
+            'is_surplus' => $difference >= 0,
+            'current_balance' => $currentBalance,
+            'projected_balance' => $currentBalance + $difference,
+            'already_settled' => $alreadySettled,
+            'customers_count' => $customersCount,
         ];
     }
 

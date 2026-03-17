@@ -3,6 +3,7 @@
         $data = $this->getTargetData();
         $investors = $data['investor_targets'];
         $personal = $data['personal_target'];
+        $cr = $data['cash_register'];
         $iqd = fn(int $v) => \Illuminate\Support\Number::iqd($v);
 
         $progressColor = fn(float $pct) => $pct >= 75 ? 'green' : ($pct >= 40 ? 'yellow' : 'red');
@@ -191,7 +192,127 @@
         </div>
 
         {{-- ══════════════════════════════════════════════ --}}
-        {{-- ── القسم الثاني: التاركت الشخصي ── --}}
+        {{-- ── القسم الثاني: القاصة ── --}}
+        {{-- ══════════════════════════════════════════════ --}}
+
+        <div class="rounded-xl border-2 {{ $cr['balance'] >= 0 ? 'border-emerald-300 dark:border-emerald-700' : 'border-red-300 dark:border-red-700' }} bg-white p-6 dark:bg-gray-900">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <x-heroicon-o-inbox-stack class="h-6 w-6 {{ $cr['balance'] >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}" />
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">القاصة</h2>
+                </div>
+                <div class="text-3xl font-bold {{ $cr['balance'] >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">
+                    {{ $iqd(abs($cr['balance'])) }}
+                    <span class="text-sm">{{ $cr['balance'] >= 0 ? 'فائض' : 'عجز' }}</span>
+                </div>
+            </div>
+
+            {{-- معاينة تصفية الشهر الحالي --}}
+            @php $preview = $cr['preview']; @endphp
+            <div class="rounded-xl border border-gray-200 bg-gray-50 p-5 mb-5 dark:border-gray-700 dark:bg-gray-800">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-bold text-gray-900 dark:text-white">
+                        تغطية المستثمرين - شهر {{ $preview['month'] }}/{{ $preview['year'] }}
+                        <span class="text-xs text-gray-400">({{ $preview['customers_count'] }} زبون)</span>
+                    </h3>
+                    @if($preview['already_settled'])
+                        <span class="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700 dark:bg-green-900/40 dark:text-green-400">
+                            <x-heroicon-o-check-circle class="h-3.5 w-3.5" />
+                            تمت التصفية
+                        </span>
+                    @endif
+                </div>
+
+                <div class="flex flex-wrap items-center justify-center gap-3 text-center text-sm mb-4">
+                    <div class="rounded-lg bg-white px-4 py-2 dark:bg-gray-900">
+                        <div class="text-xs text-gray-500 dark:text-gray-400">أرباح الزبائن</div>
+                        <div class="text-lg font-bold text-green-600 dark:text-green-400">{{ $iqd($preview['monthly_profit']) }}</div>
+                    </div>
+                    <span class="text-2xl font-bold text-gray-400">−</span>
+                    <div class="rounded-lg bg-white px-4 py-2 dark:bg-gray-900">
+                        <div class="text-xs text-gray-500 dark:text-gray-400">تاركت المستثمرين</div>
+                        <div class="text-lg font-bold text-orange-600 dark:text-orange-400">{{ $iqd($preview['monthly_investor_target']) }}</div>
+                    </div>
+                    <span class="text-2xl font-bold text-gray-400">=</span>
+                    <div class="rounded-lg border-2 {{ $preview['is_surplus'] ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-red-500 bg-red-50 dark:bg-red-900/20' }} px-5 py-2">
+                        <div class="text-xs text-gray-500 dark:text-gray-400">{{ $preview['is_surplus'] ? 'فائض → يُضاف للقاصة' : 'عجز → يُخصم من القاصة' }}</div>
+                        <div class="text-lg font-bold {{ $preview['is_surplus'] ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
+                            {{ $iqd(abs($preview['difference'])) }}
+                        </div>
+                    </div>
+                </div>
+
+                @if(!$preview['already_settled'])
+                <div class="rounded-lg bg-white p-3 dark:bg-gray-900">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-500 dark:text-gray-400">رصيد القاصة بعد التصفية:</span>
+                        <span class="font-bold {{ $preview['projected_balance'] >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">
+                            {{ $iqd($preview['projected_balance']) }}
+                        </span>
+                    </div>
+                </div>
+                @endif
+            </div>
+
+            {{-- سجل الحركات --}}
+            @if(count($cr['transactions']) > 0)
+            <div>
+                <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 mb-3">
+                    <x-heroicon-o-clipboard-document-list class="inline h-4 w-4" />
+                    سجل حركات القاصة
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-200 dark:border-gray-700">
+                                <th class="px-3 py-2 text-right text-xs font-bold text-gray-500 dark:text-gray-400">التاريخ</th>
+                                <th class="px-3 py-2 text-right text-xs font-bold text-gray-500 dark:text-gray-400">الشهر</th>
+                                <th class="px-3 py-2 text-right text-xs font-bold text-gray-500 dark:text-gray-400">النوع</th>
+                                <th class="px-3 py-2 text-right text-xs font-bold text-gray-500 dark:text-gray-400">المبلغ</th>
+                                <th class="px-3 py-2 text-right text-xs font-bold text-gray-500 dark:text-gray-400">الرصيد بعدها</th>
+                                <th class="px-3 py-2 text-right text-xs font-bold text-gray-500 dark:text-gray-400">الوصف</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($cr['transactions'] as $tx)
+                            <tr class="border-b border-gray-100 dark:border-gray-800">
+                                <td class="px-3 py-2 text-gray-500 dark:text-gray-400">{{ $tx['date'] }}</td>
+                                <td class="px-3 py-2 text-gray-700 dark:text-gray-300">{{ $tx['month'] }}/{{ $tx['year'] }}</td>
+                                <td class="px-3 py-2">
+                                    @if($tx['type'] === 'deposit')
+                                        <span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700 dark:bg-green-900/40 dark:text-green-400">
+                                            <x-heroicon-o-arrow-up class="h-3 w-3 ml-1" />
+                                            إيداع
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700 dark:bg-red-900/40 dark:text-red-400">
+                                            <x-heroicon-o-arrow-down class="h-3 w-3 ml-1" />
+                                            سحب
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="px-3 py-2 font-bold {{ $tx['type'] === 'deposit' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
+                                    {{ $tx['type'] === 'deposit' ? '+' : '-' }}{{ $iqd($tx['amount']) }}
+                                </td>
+                                <td class="px-3 py-2 font-bold {{ $tx['balance_after'] >= 0 ? 'text-gray-900 dark:text-white' : 'text-red-600 dark:text-red-400' }}">
+                                    {{ $iqd($tx['balance_after']) }}
+                                </td>
+                                <td class="px-3 py-2 text-gray-500 dark:text-gray-400">{{ $tx['description'] }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @else
+            <div class="rounded-lg bg-gray-50 p-4 text-center dark:bg-gray-800">
+                <p class="text-sm text-gray-500 dark:text-gray-400">لا توجد حركات مسجلة بعد - اضغط "تصفية الحسابات" لبدء أول تصفية</p>
+            </div>
+            @endif
+        </div>
+
+        {{-- ══════════════════════════════════════════════ --}}
+        {{-- ── القسم الثالث: التاركت الشخصي ── --}}
         {{-- ══════════════════════════════════════════════ --}}
 
         <div class="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
