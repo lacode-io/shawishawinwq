@@ -122,15 +122,22 @@
 
     {{-- ── الأقساط المدفوعة ── --}}
     <x-filament::section>
-        <div class="flex items-center gap-3">
-            <div class="rounded-lg bg-emerald-50 p-2 dark:bg-emerald-900/20">
-                <x-heroicon-o-check-badge class="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="rounded-lg bg-emerald-50 p-2 dark:bg-emerald-900/20">
+                    <x-heroicon-o-check-badge class="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">الأقساط المدفوعة</div>
+                    <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ $iqd($stats['monthly_payments_in']) }}</div>
+                    <div class="text-xs text-gray-400 dark:text-gray-500">{{ $stats['payments_month_label'] }}</div>
+                </div>
             </div>
-            <div>
-                <div class="text-sm text-gray-500 dark:text-gray-400">الأقساط المدفوعة هذا الشهر</div>
-                <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ $iqd($stats['monthly_payments_in']) }}</div>
-                <div class="text-xs text-gray-400 dark:text-gray-500">{{ now()->translatedFormat('F Y') }}</div>
-            </div>
+            <input
+                type="month"
+                wire:model.live="paymentsMonth"
+                class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+            />
         </div>
     </x-filament::section>
 

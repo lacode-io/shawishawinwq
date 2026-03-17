@@ -36,6 +36,13 @@ class FinanceDashboard extends Page implements HasForms
 
     public ?string $exportTo = null;
 
+    public ?string $paymentsMonth = null;
+
+    public function mount(): void
+    {
+        $this->paymentsMonth = now()->format('Y-m');
+    }
+
     public static function getNavigationLabel(): string
     {
         return 'لوحة المالية';
@@ -67,7 +74,8 @@ class FinanceDashboard extends Page implements HasForms
             // ── تفاصيل رأس المال الكاش ──
             'manual_cash_capital' => (int) Setting::instance()->cash_capital,
             'total_payments_in' => (int) CustomerPayment::sum('amount'),
-            'monthly_payments_in' => (int) CustomerPayment::whereMonth('paid_at', now()->month)->whereYear('paid_at', now()->year)->sum('amount'),
+            'monthly_payments_in' => (int) CustomerPayment::whereMonth('paid_at', \Carbon\Carbon::parse($this->paymentsMonth)->month)->whereYear('paid_at', \Carbon\Carbon::parse($this->paymentsMonth)->year)->sum('amount'),
+            'payments_month_label' => \Carbon\Carbon::parse($this->paymentsMonth)->translatedFormat('F Y'),
             'total_investments' => (int) Investor::sum('amount_invested'),
             'total_expenses_all' => (int) Expense::sum('amount'),
             'total_investor_payouts_all' => (int) InvestorPayout::sum('amount'),
