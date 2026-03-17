@@ -75,6 +75,7 @@
                         </div>
 
                         {{-- شريط تاركت الربح الشهري (حسب الأشهر) --}}
+                        @php $monthsPct = number_format($inv['months_progress'], 1, '.', ''); @endphp
                         <div class="mb-3">
                             <div class="flex items-center justify-between mb-1">
                                 <span class="text-xs text-gray-500 dark:text-gray-400">
@@ -84,9 +85,8 @@
                                     {{ $inv['elapsed_months'] }} / {{ $inv['investment_months'] }} شهر
                                 </span>
                             </div>
-                            <div class="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700">
-                                <div class="h-3 rounded-full transition-all bg-blue-500"
-                                     style="width: {{ $inv['months_progress'] }}%"></div>
+                            <div class="w-full rounded-full h-3 overflow-hidden" style="background-color: rgb(229 231 235);">
+                                <div class="h-3 rounded-full bg-blue-500" style="width: {{ $monthsPct }}%; min-width: {{ $monthsPct > 0 ? '0.5rem' : '0' }};"></div>
                             </div>
                             <div class="flex items-center justify-between mt-1">
                                 <span class="text-xs text-gray-400">{{ $iqd($inv['monthly_target']) }} / شهر</span>
@@ -95,6 +95,7 @@
                         </div>
 
                         {{-- شريط الإنجاز الكلي (حسب الأشهر) --}}
+                        @php $totalPct = number_format($inv['progress_percent'], 1, '.', ''); @endphp
                         <div>
                             <div class="flex items-center justify-between mb-1">
                                 <span class="text-xs text-gray-500 dark:text-gray-400">الإنجاز الكلي (استثمار + ربح)</span>
@@ -102,9 +103,8 @@
                                     {{ $inv['months_progress'] }}%
                                 </span>
                             </div>
-                            <div class="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700">
-                                <div class="h-3 rounded-full transition-all {{ $progressBg($inv['months_progress']) }}"
-                                     style="width: {{ $inv['months_progress'] }}%"></div>
+                            <div class="w-full rounded-full h-3 overflow-hidden" style="background-color: rgb(229 231 235);">
+                                <div class="h-3 rounded-full {{ $progressBg($inv['months_progress']) }}" style="width: {{ $monthsPct }}%; min-width: {{ $monthsPct > 0 ? '0.5rem' : '0' }};"></div>
                             </div>
                             <div class="flex items-center justify-between mt-1">
                                 <span class="text-xs text-gray-400">{{ $iqd($inv['total_paid']) }}</span>
