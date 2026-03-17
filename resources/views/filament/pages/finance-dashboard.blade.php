@@ -133,11 +133,17 @@
                     <div class="text-xs text-gray-400 dark:text-gray-500">{{ $stats['payments_month_label'] }}</div>
                 </div>
             </div>
-            <input
-                type="month"
-                wire:model.live="paymentsMonth"
-                class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
-            />
+            <div class="flex items-center gap-1">
+                <button wire:click="$set('paymentsMonth', '{{ \Carbon\Carbon::parse($this->paymentsMonth)->subMonth()->format('Y-m') }}')"
+                    class="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300">
+                    <x-heroicon-o-chevron-right class="h-5 w-5" />
+                </button>
+                <span class="min-w-[100px] text-center text-sm font-medium text-gray-700 dark:text-gray-300">{{ $stats['payments_month_label'] }}</span>
+                <button wire:click="$set('paymentsMonth', '{{ \Carbon\Carbon::parse($this->paymentsMonth)->addMonth()->format('Y-m') }}')"
+                    class="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300">
+                    <x-heroicon-o-chevron-left class="h-5 w-5" />
+                </button>
+            </div>
         </div>
     </x-filament::section>
 
