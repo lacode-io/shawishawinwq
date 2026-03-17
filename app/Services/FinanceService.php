@@ -136,7 +136,12 @@ class FinanceService
         return Cache::remember('finance.investors_due', self::CACHE_TTL, function () {
             $investors = Investor::where('status', InvestorStatus::Active)->get();
 
-            return (int) $investors->sum(fn (Investor $i) => $i->total_due);
+            return (int) $investors->sum(function (Investor $i) {
+                $elapsed = min($i->elapsed_months, $i->investment_months);
+                $totalDue = $i->amount_invested + ($i->monthly_target_amount * $elapsed);
+
+                return $totalDue - $i->total_paid_out;
+            });
         });
     }
 
