@@ -482,6 +482,120 @@ class FinanceService
         });
     }
 
+    // ══════════════════════════════════════════════
+    // ── Target Calculations ──
+    // ══════════════════════════════════════════════
+
+    /**
+     * بيانات تاركت كل مستثمر + الكلي
+     */
+    public function investorTargets(): array
+    {
+        $investors = Investor::where('status', InvestorStatus::Active)
+            ->with('payouts')
+            ->get();
+
+        $monthlyCustomerProfit = $this->monthlyProfitFromActiveCustomers()['total_monthly_profit'];
+        $totalMonthlyTarget = (int) $investors->sum('monthly_target_amount');
+
+        $perInvestor = $investors->map(function (Investor $investor) {
+            $monthlyTarget = $investor->monthly_target_amount;
+            $yearlyTarget = $monthlyTarget * 12;
+            $totalTarget = $investor->total_due; // مبلغ الاستثمار + الأرباح
+            $totalPaid = $investor->total_paid_out;
+            $progressPercent = $totalTarget > 0 ? round(($totalPaid / $totalTarget) * 100, 1) : 0;
+
+            return [
+                'id' => $investor->id,
+                'name' => $investor->full_name,
+                'amount_invested' => $investor->amount_invested,
+                'profit_percent' => $investor->profit_percent_total,
+                'investment_months' => $investor->investment_months,
+                'total_profit_amount' => $investor->total_profit_amount,
+                'total_due' => $totalTarget,
+                'monthly_target' => $monthlyTarget,
+                'yearly_target' => $yearlyTarget,
+                'total_paid' => $totalPaid,
+                'remaining' => $investor->remaining_balance,
+                'elapsed_months' => min($investor->elapsed_months, $investor->investment_months),
+                'progress_percent' => min($progressPercent, 100),
+                'start_date' => $investor->start_date->format('Y/m/d'),
+                'payout_due_date' => $investor->payout_due_date->format('Y/m/d'),
+            ];
+        })->all();
+
+        // المجموع الكلي
+        $totalInvested = (int) $investors->sum('amount_invested');
+        $totalDue = (int) $investors->sum(fn ($i) => $i->total_due);
+        $totalPaidAll = (int) $investors->sum(fn ($i) => $i->total_paid_out);
+        $totalMonthly = $totalMonthlyTarget;
+        $totalYearly = $totalMonthly * 12;
+        $totalProgress = $totalDue > 0 ? round(($totalPaidAll / $totalDue) * 100, 1) : 0;
+
+        // تغطية من أرباح المبيعات
+        $profitCoverage = $monthlyCustomerProfit - $totalMonthlyTarget;
+
+        return [
+            'per_investor' => $perInvestor,
+            'combined' => [
+                'total_invested' => $totalInvested,
+                'total_due' => $totalDue,
+                'total_paid' => $totalPaidAll,
+                'total_remaining' => $totalDue - $totalPaidAll,
+                'monthly_target' => $totalMonthly,
+                'yearly_target' => $totalYearly,
+                'progress_percent' => min($totalProgress, 100),
+            ],
+            'coverage' => [
+                'monthly_profit' => $monthlyCustomerProfit,
+                'monthly_target' => $totalMonthlyTarget,
+                'surplus' => $profitCoverage,
+                'is_covered' => $profitCoverage >= 0,
+            ],
+        ];
+    }
+
+    /**
+     * بيانات التاركت الشخصي (السنوي والشهري)
+     * التاركت = الفائض بعد المصاريف والمستثمرين
+     */
+    public function personalTarget(): array
+    {
+        $yearlyTarget = (int) Setting::instance()->yearly_target_amount;
+        $monthlyTarget = $yearlyTarget > 0 ? (int) ceil($yearlyTarget / 12) : 0;
+
+        // الفائض = الأرباح المحققة - مستحقات المستثمرين المتراكمة - المصاريف الكلية
+        $totalProfitEarned = $this->totalProfitEarned();
+        $totalInvestorDues = $this->totalInvestorDuesSoFar();
+        $totalExpenses = (int) Expense::sum('amount');
+
+        $surplus = $totalProfitEarned - $totalInvestorDues - $totalExpenses;
+        $yearlyProgress = $yearlyTarget > 0 ? round((max(0, $surplus) / $yearlyTarget) * 100, 1) : 0;
+
+        // التاركت الشهري - نسبة الإنجاز للشهر الحالي
+        $currentMonthProfit = $this->monthlyProfit();
+        $currentMonthExpenses = $this->monthlyExpenses();
+        $currentMonthInvestorTarget = (int) Investor::where('status', InvestorStatus::Active)->sum('monthly_target_amount');
+
+        $monthlySurplus = $currentMonthProfit - $currentMonthInvestorTarget - $currentMonthExpenses['total'];
+        $monthlyProgress = $monthlyTarget > 0 ? round((max(0, $monthlySurplus) / $monthlyTarget) * 100, 1) : 0;
+
+        return [
+            'yearly_target' => $yearlyTarget,
+            'monthly_target' => $monthlyTarget,
+            'total_profit_earned' => $totalProfitEarned,
+            'total_investor_dues' => $totalInvestorDues,
+            'total_expenses' => $totalExpenses,
+            'surplus' => $surplus,
+            'yearly_progress' => min($yearlyProgress, 100),
+            'monthly_surplus' => $monthlySurplus,
+            'monthly_progress' => min($monthlyProgress, 100),
+            'current_month_profit' => $currentMonthProfit,
+            'current_month_expenses' => $currentMonthExpenses['total'],
+            'current_month_investor_target' => $currentMonthInvestorTarget,
+        ];
+    }
+
     /**
      * Flush all finance caches
      */

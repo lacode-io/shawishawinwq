@@ -152,6 +152,7 @@ class RoleResource extends Resource
             'manage_settings' => 'إدارة الإعدادات',
             'export_pdf' => 'تصدير PDF',
             'view_finance_dashboard' => 'عرض لوحة المالية',
+            'view_targets' => 'عرض التاركت',
             'mark_completed' => 'تحديد كمكتمل',
         ];
 

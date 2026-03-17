@@ -12,6 +12,7 @@ class Setting extends Model
         'primary_color',
         'secondary_color',
         'cash_capital',
+        'yearly_target_amount',
         'whatsapp_provider_config',
     ];
 
@@ -19,6 +20,7 @@ class Setting extends Model
     {
         return [
             'cash_capital' => 'integer',
+            'yearly_target_amount' => 'integer',
             'whatsapp_provider_config' => 'array',
         ];
     }
