@@ -505,6 +505,19 @@ class FinanceService
             $totalPaid = $investor->total_paid_out;
             $progressPercent = $totalTarget > 0 ? round(($totalPaid / $totalTarget) * 100, 1) : 0;
 
+            // شريط التاركت الشهري (الربح فقط) حسب الأشهر المنقضية
+            $elapsed = min($investor->elapsed_months, $investor->investment_months);
+            $expectedProfit = $investor->investment_months > 0
+                ? (int) round($investor->total_profit_amount * ($elapsed / $investor->investment_months))
+                : 0;
+            $paidProfit = max(0, $totalPaid - $investor->amount_invested); // المدفوع من الربح فقط
+            $monthlyProfitProgress = $expectedProfit > 0
+                ? round(($paidProfit / $expectedProfit) * 100, 1)
+                : ($elapsed > 0 ? 0 : 100);
+            $monthsProgress = $investor->investment_months > 0
+                ? round(($elapsed / $investor->investment_months) * 100, 1)
+                : 0;
+
             return [
                 'id' => $investor->id,
                 'name' => $investor->full_name,
@@ -516,8 +529,12 @@ class FinanceService
                 'monthly_target' => $monthlyTarget,
                 'yearly_target' => $yearlyTarget,
                 'total_paid' => $totalPaid,
+                'paid_profit' => $paidProfit,
+                'expected_profit' => $expectedProfit,
                 'remaining' => $investor->remaining_balance,
-                'elapsed_months' => min($investor->elapsed_months, $investor->investment_months),
+                'elapsed_months' => $elapsed,
+                'months_progress' => min($monthsProgress, 100),
+                'monthly_profit_progress' => min($monthlyProfitProgress, 100),
                 'progress_percent' => min($progressPercent, 100),
                 'start_date' => $investor->start_date->format('Y/m/d'),
                 'payout_due_date' => $investor->payout_due_date->format('Y/m/d'),

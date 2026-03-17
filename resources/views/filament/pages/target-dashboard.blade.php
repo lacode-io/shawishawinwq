@@ -74,10 +74,38 @@
                             </div>
                         </div>
 
-                        {{-- شريط الإنجاز --}}
+                        {{-- شريط التاركت الشهري (الربح فقط حسب الأشهر) --}}
+                        <div class="mb-3">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs text-gray-500 dark:text-gray-400">
+                                    تاركت الربح الشهري
+                                    <span class="text-[10px] text-gray-400">({{ $inv['elapsed_months'] }} من {{ $inv['investment_months'] }} شهر)</span>
+                                </span>
+                                <span class="text-sm font-bold {{ $progressText($inv['monthly_profit_progress']) }}">
+                                    {{ $inv['monthly_profit_progress'] }}%
+                                </span>
+                            </div>
+                            {{-- شريط المدة --}}
+                            <div class="relative w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700">
+                                <div class="h-3 rounded-full transition-all {{ $progressBg($inv['monthly_profit_progress']) }}"
+                                     style="width: {{ $inv['monthly_profit_progress'] }}%"></div>
+                                {{-- مؤشر المدة المنقضية --}}
+                                @if($inv['months_progress'] > 0 && $inv['months_progress'] < 100)
+                                <div class="absolute top-0 h-3 w-0.5 bg-gray-900 dark:bg-white rounded"
+                                     style="left: {{ $inv['months_progress'] }}%"
+                                     title="المدة المنقضية {{ $inv['months_progress'] }}%"></div>
+                                @endif
+                            </div>
+                            <div class="flex items-center justify-between mt-1">
+                                <span class="text-xs text-gray-400">المدفوع من الربح: {{ $iqd($inv['paid_profit']) }}</span>
+                                <span class="text-xs text-gray-400">المتوقع: {{ $iqd($inv['expected_profit']) }}</span>
+                            </div>
+                        </div>
+
+                        {{-- شريط الإنجاز الكلي --}}
                         <div>
                             <div class="flex items-center justify-between mb-1">
-                                <span class="text-xs text-gray-500 dark:text-gray-400">نسبة الإنجاز</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">الإنجاز الكلي (استثمار + ربح)</span>
                                 <span class="text-sm font-bold {{ $progressText($inv['progress_percent']) }}">
                                     {{ $inv['progress_percent'] }}%
                                 </span>
