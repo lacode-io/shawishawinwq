@@ -251,6 +251,12 @@ class CustomerResource extends Resource
                     ->sortable()
                     ->toggleable(),
 
+                Tables\Columns\TextColumn::make('product_cost_price')
+                    ->label(__('Cost Price'))
+                    ->formatStateUsing(fn (?int $state): string => $state ? Number::iqd($state) : '-')
+                    ->sortable()
+                    ->toggleable(),
+
                 Tables\Columns\TextColumn::make('product_sale_total')
                     ->label(__('Sale Total'))
                     ->formatStateUsing(fn (int $state): string => Number::iqd($state))
@@ -284,6 +290,19 @@ class CustomerResource extends Resource
                     ->badge()
                     ->formatStateUsing(fn (CustomerStatus $state): string => $state->label())
                     ->color(fn (CustomerStatus $state): string => $state->color()),
+
+                Tables\Columns\TextColumn::make('last_payment_date')
+                    ->label('آخر تسديد')
+                    ->date('Y/m/d')
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->orderBy(
+                            CustomerPayment::selectRaw('MAX(paid_at)')
+                                ->whereColumn('customer_payments.customer_id', 'customers.id'),
+                            $direction,
+                        );
+                    })
+                    ->getStateUsing(fn (Customer $record): ?string => $record->payments()->latest('paid_at')->value('paid_at'))
+                    ->placeholder('لا يوجد'),
 
                 Tables\Columns\TextColumn::make('delivery_date')
                     ->label(__('Delivery Date'))

@@ -120,6 +120,20 @@
         </x-filament::section>
     </div>
 
+    {{-- ── الأقساط المدفوعة ── --}}
+    <x-filament::section>
+        <div class="flex items-center gap-3">
+            <div class="rounded-lg bg-emerald-50 p-2 dark:bg-emerald-900/20">
+                <x-heroicon-o-check-badge class="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">إجمالي الأقساط المدفوعة من الزبائن</div>
+                <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ $iqd($stats['total_payments_in']) }}</div>
+                <div class="text-xs text-gray-400 dark:text-gray-500">مجموع كل التسديدات من بداية المشروع</div>
+            </div>
+        </div>
+    </x-filament::section>
+
     {{-- ── تفاصيل رأس المال الكاش (كيف يتحسب) ── --}}
     <div class="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
         <h3 class="mb-4 text-lg font-bold text-gray-900 dark:text-white">

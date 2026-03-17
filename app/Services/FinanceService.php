@@ -241,11 +241,17 @@ class FinanceService
             ->whereYear('spent_at', $month->year)
             ->sum('amount');
 
+        $commission = (int) Expense::where('type', ExpenseType::Commission)
+            ->whereMonth('spent_at', $month->month)
+            ->whereYear('spent_at', $month->year)
+            ->sum('amount');
+
         return [
             'business' => $business,
             'personal' => $personal,
             'salary' => $salary,
-            'total' => $business + $personal + $salary,
+            'commission' => $commission,
+            'total' => $business + $personal + $salary + $commission,
         ];
     }
 

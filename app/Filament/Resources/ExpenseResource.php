@@ -149,6 +149,41 @@ class ExpenseResource extends Resource
                     ->label('هذا الشهر')
                     ->toggle()
                     ->query(fn (Builder $query): Builder => $query->whereMonth('spent_at', now()->month)->whereYear('spent_at', now()->year)),
+
+                Tables\Filters\Filter::make('last_2_months')
+                    ->label('آخر شهرين')
+                    ->toggle()
+                    ->query(fn (Builder $query): Builder => $query->where('spent_at', '>=', now()->subMonths(2)->startOfMonth())),
+
+                Tables\Filters\Filter::make('date_range')
+                    ->label('تاريخ محدد')
+                    ->form([
+                        Forms\Components\DatePicker::make('from')
+                            ->label('من')
+                            ->native(false)
+                            ->displayFormat('Y/m/d'),
+                        Forms\Components\DatePicker::make('to')
+                            ->label('إلى')
+                            ->native(false)
+                            ->displayFormat('Y/m/d'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when($data['from'], fn (Builder $q, $date) => $q->where('spent_at', '>=', $date))
+                            ->when($data['to'], fn (Builder $q, $date) => $q->where('spent_at', '<=', $date));
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        if ($data['from'] ?? null) {
+                            $indicators[] = Tables\Filters\Indicator::make('من ' . \Carbon\Carbon::parse($data['from'])->format('Y/m/d'))
+                                ->removeField('from');
+                        }
+                        if ($data['to'] ?? null) {
+                            $indicators[] = Tables\Filters\Indicator::make('إلى ' . \Carbon\Carbon::parse($data['to'])->format('Y/m/d'))
+                                ->removeField('to');
+                        }
+                        return $indicators;
+                    }),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

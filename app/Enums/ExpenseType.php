@@ -7,6 +7,7 @@ enum ExpenseType: string
     case Business = 'business';
     case Personal = 'personal';
     case Salary = 'salary';
+    case Commission = 'commission';
 
     public function label(): string
     {
@@ -14,6 +15,7 @@ enum ExpenseType: string
             self::Business => 'مصاريف عمل',
             self::Personal => 'مصاريف شخصية',
             self::Salary => 'رواتب',
+            self::Commission => 'كومشن',
         };
     }
 
@@ -23,6 +25,7 @@ enum ExpenseType: string
             self::Business => 'warning',
             self::Personal => 'info',
             self::Salary => 'success',
+            self::Commission => 'danger',
         };
     }
 }
