@@ -342,49 +342,35 @@
                             <div class="text-3xl font-bold text-purple-600 dark:text-purple-400">{{ $iqd($personal['yearly_target']) }}</div>
                         </div>
 
-                        {{-- المعادلة --}}
+                        {{-- رصيد القاصة / التاركت --}}
                         <div class="rounded-lg bg-white p-3 dark:bg-gray-900 mb-4">
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">الفائض = الأرباح − مستحقات المستثمرين − المصاريف</p>
                             <div class="flex flex-wrap items-center justify-center gap-2 text-center text-xs">
-                                <div class="rounded bg-green-50 px-3 py-1.5 dark:bg-green-900/20">
-                                    <div class="text-[10px] text-gray-400">الأرباح المحققة</div>
-                                    <div class="font-bold text-green-600 dark:text-green-400">{{ $iqd($personal['total_profit_earned']) }}</div>
+                                <div class="rounded {{ $personal['balance'] >= 0 ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-red-50 dark:bg-red-900/20' }} px-4 py-2">
+                                    <div class="text-[10px] text-gray-400">رصيد القاصة</div>
+                                    <div class="font-bold {{ $personal['balance'] >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">{{ $iqd($personal['balance']) }}</div>
                                 </div>
-                                <span class="text-lg font-bold text-gray-400">−</span>
-                                <div class="rounded bg-orange-50 px-3 py-1.5 dark:bg-orange-900/20">
-                                    <div class="text-[10px] text-gray-400">مستحقات المستثمرين</div>
-                                    <div class="font-bold text-orange-600 dark:text-orange-400">{{ $iqd($personal['total_investor_dues']) }}</div>
-                                </div>
-                                <span class="text-lg font-bold text-gray-400">−</span>
-                                <div class="rounded bg-red-50 px-3 py-1.5 dark:bg-red-900/20">
-                                    <div class="text-[10px] text-gray-400">المصاريف الكلية</div>
-                                    <div class="font-bold text-red-600 dark:text-red-400">{{ $iqd($personal['total_expenses']) }}</div>
-                                </div>
-                                <span class="text-lg font-bold text-gray-400">=</span>
-                                <div class="rounded border {{ $personal['surplus'] >= 0 ? 'border-green-400 bg-green-50 dark:bg-green-900/20' : 'border-red-400 bg-red-50 dark:bg-red-900/20' }} px-3 py-1.5">
-                                    <div class="text-[10px] text-gray-400">الفائض</div>
-                                    <div class="font-bold {{ $personal['surplus'] >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
-                                        {{ $iqd(abs($personal['surplus'])) }}
-                                        {{ $personal['surplus'] < 0 ? '(عجز)' : '' }}
-                                    </div>
+                                <span class="text-lg font-bold text-gray-400">من</span>
+                                <div class="rounded bg-purple-50 px-4 py-2 dark:bg-purple-900/20">
+                                    <div class="text-[10px] text-gray-400">التاركت السنوي</div>
+                                    <div class="font-bold text-purple-600 dark:text-purple-400">{{ $iqd($personal['yearly_target']) }}</div>
                                 </div>
                             </div>
                         </div>
 
                         {{-- شريط الإنجاز السنوي --}}
+                        @php $yearlyPct = number_format($personal['yearly_progress'], 1, '.', ''); @endphp
                         <div>
                             <div class="flex items-center justify-between mb-1">
                                 <span class="text-sm text-gray-600 dark:text-gray-400">نسبة الإنجاز</span>
-                                <span class="text-lg font-bold {{ $progressText($personal['yearly_progress']) }}">
+                                <span class="text-lg font-bold" style="color: {{ $personal['yearly_progress'] >= 75 ? '#22c55e' : ($personal['yearly_progress'] >= 40 ? '#eab308' : '#ef4444') }};">
                                     {{ $personal['yearly_progress'] }}%
                                 </span>
                             </div>
-                            <div class="w-full bg-gray-200 rounded-full h-4 dark:bg-gray-700">
-                                <div class="h-4 rounded-full transition-all {{ $progressBg($personal['yearly_progress']) }}"
-                                     style="width: {{ $personal['yearly_progress'] }}%"></div>
+                            <div class="w-full rounded-full h-4 overflow-hidden bg-gray-200 dark:bg-gray-700">
+                                <div class="h-4 rounded-full" style="width: {{ $yearlyPct }}%; min-width: {{ $yearlyPct > 0 ? '0.5rem' : '0' }}; background-color: {{ $personal['yearly_progress'] >= 75 ? '#22c55e' : ($personal['yearly_progress'] >= 40 ? '#eab308' : '#ef4444') }};"></div>
                             </div>
                             <div class="flex items-center justify-between mt-1">
-                                <span class="text-xs text-gray-400">{{ $iqd(max(0, $personal['surplus'])) }}</span>
+                                <span class="text-xs text-gray-400">{{ $iqd(max(0, $personal['balance'])) }}</span>
                                 <span class="text-xs text-gray-400">{{ $iqd($personal['yearly_target']) }}</span>
                             </div>
                         </div>
@@ -399,52 +385,38 @@
 
                         <div class="text-center mb-4">
                             <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ $iqd($personal['monthly_target']) }}</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">من التاركت السنوي ÷ 12</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">التاركت السنوي ÷ 12</div>
                         </div>
 
-                        {{-- المعادلة الشهرية --}}
+                        {{-- رصيد القاصة / التاركت الشهري --}}
                         <div class="rounded-lg bg-white p-3 dark:bg-gray-900 mb-4">
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">الفائض الشهري = أرباح الشهر − تاركت المستثمرين − المصاريف</p>
                             <div class="flex flex-wrap items-center justify-center gap-2 text-center text-xs">
-                                <div class="rounded bg-green-50 px-3 py-1.5 dark:bg-green-900/20">
-                                    <div class="text-[10px] text-gray-400">أرباح الشهر</div>
-                                    <div class="font-bold text-green-600 dark:text-green-400">{{ $iqd($personal['current_month_profit']) }}</div>
+                                <div class="rounded {{ $personal['balance'] >= 0 ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-red-50 dark:bg-red-900/20' }} px-4 py-2">
+                                    <div class="text-[10px] text-gray-400">رصيد القاصة</div>
+                                    <div class="font-bold {{ $personal['balance'] >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">{{ $iqd($personal['balance']) }}</div>
                                 </div>
-                                <span class="text-lg font-bold text-gray-400">−</span>
-                                <div class="rounded bg-orange-50 px-3 py-1.5 dark:bg-orange-900/20">
-                                    <div class="text-[10px] text-gray-400">تاركت المستثمرين</div>
-                                    <div class="font-bold text-orange-600 dark:text-orange-400">{{ $iqd($personal['current_month_investor_target']) }}</div>
-                                </div>
-                                <span class="text-lg font-bold text-gray-400">−</span>
-                                <div class="rounded bg-red-50 px-3 py-1.5 dark:bg-red-900/20">
-                                    <div class="text-[10px] text-gray-400">مصاريف الشهر</div>
-                                    <div class="font-bold text-red-600 dark:text-red-400">{{ $iqd($personal['current_month_expenses']) }}</div>
-                                </div>
-                                <span class="text-lg font-bold text-gray-400">=</span>
-                                <div class="rounded border {{ $personal['monthly_surplus'] >= 0 ? 'border-green-400 bg-green-50 dark:bg-green-900/20' : 'border-red-400 bg-red-50 dark:bg-red-900/20' }} px-3 py-1.5">
-                                    <div class="text-[10px] text-gray-400">الفائض</div>
-                                    <div class="font-bold {{ $personal['monthly_surplus'] >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
-                                        {{ $iqd(abs($personal['monthly_surplus'])) }}
-                                        {{ $personal['monthly_surplus'] < 0 ? '(عجز)' : '' }}
-                                    </div>
+                                <span class="text-lg font-bold text-gray-400">من</span>
+                                <div class="rounded bg-blue-50 px-4 py-2 dark:bg-blue-900/20">
+                                    <div class="text-[10px] text-gray-400">التاركت الشهري</div>
+                                    <div class="font-bold text-blue-600 dark:text-blue-400">{{ $iqd($personal['monthly_target']) }}</div>
                                 </div>
                             </div>
                         </div>
 
                         {{-- شريط الإنجاز الشهري --}}
+                        @php $monthlyPct = number_format(min($personal['monthly_progress'], 100), 1, '.', ''); @endphp
                         <div>
                             <div class="flex items-center justify-between mb-1">
                                 <span class="text-sm text-gray-600 dark:text-gray-400">نسبة الإنجاز</span>
-                                <span class="text-lg font-bold {{ $progressText($personal['monthly_progress']) }}">
+                                <span class="text-lg font-bold" style="color: {{ $personal['monthly_progress'] >= 75 ? '#22c55e' : ($personal['monthly_progress'] >= 40 ? '#eab308' : '#ef4444') }};">
                                     {{ $personal['monthly_progress'] }}%
                                 </span>
                             </div>
-                            <div class="w-full bg-gray-200 rounded-full h-4 dark:bg-gray-700">
-                                <div class="h-4 rounded-full transition-all {{ $progressBg($personal['monthly_progress']) }}"
-                                     style="width: {{ $personal['monthly_progress'] }}%"></div>
+                            <div class="w-full rounded-full h-4 overflow-hidden bg-gray-200 dark:bg-gray-700">
+                                <div class="h-4 rounded-full" style="width: {{ $monthlyPct }}%; min-width: {{ $monthlyPct > 0 ? '0.5rem' : '0' }}; background-color: {{ $personal['monthly_progress'] >= 75 ? '#22c55e' : ($personal['monthly_progress'] >= 40 ? '#eab308' : '#ef4444') }};"></div>
                             </div>
                             <div class="flex items-center justify-between mt-1">
-                                <span class="text-xs text-gray-400">{{ $iqd(max(0, $personal['monthly_surplus'])) }}</span>
+                                <span class="text-xs text-gray-400">{{ $iqd(max(0, $personal['balance'])) }}</span>
                                 <span class="text-xs text-gray-400">{{ $iqd($personal['monthly_target']) }}</span>
                             </div>
                         </div>

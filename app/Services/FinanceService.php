@@ -570,38 +570,22 @@ class FinanceService
      */
     public function personalTarget(): array
     {
-        $yearlyTarget = (int) Setting::instance()->yearly_target_amount;
+        $settings = Setting::instance();
+        $yearlyTarget = (int) $settings->yearly_target_amount;
         $monthlyTarget = $yearlyTarget > 0 ? (int) ceil($yearlyTarget / 12) : 0;
 
-        // الفائض = الأرباح المحققة - مستحقات المستثمرين المتراكمة - المصاريف الكلية
-        $totalProfitEarned = $this->totalProfitEarned();
-        $totalInvestorDues = $this->totalInvestorDuesSoFar();
-        $totalExpenses = (int) Expense::sum('amount');
+        // رصيد القاصة هو مقياس الإنجاز
+        $balance = (int) $settings->cash_register_balance;
 
-        $surplus = $totalProfitEarned - $totalInvestorDues - $totalExpenses;
-        $yearlyProgress = $yearlyTarget > 0 ? round((max(0, $surplus) / $yearlyTarget) * 100, 1) : 0;
-
-        // التاركت الشهري - نسبة الإنجاز للشهر الحالي
-        $currentMonthProfit = $this->monthlyProfit();
-        $currentMonthExpenses = $this->monthlyExpenses();
-        $currentMonthInvestorTarget = (int) Investor::where('status', InvestorStatus::Active)->sum('monthly_target_amount');
-
-        $monthlySurplus = $currentMonthProfit - $currentMonthInvestorTarget - $currentMonthExpenses['total'];
-        $monthlyProgress = $monthlyTarget > 0 ? round((max(0, $monthlySurplus) / $monthlyTarget) * 100, 1) : 0;
+        $yearlyProgress = $yearlyTarget > 0 ? round((max(0, $balance) / $yearlyTarget) * 100, 1) : 0;
+        $monthlyProgress = $monthlyTarget > 0 ? round((max(0, $balance) / $monthlyTarget) * 100, 1) : 0;
 
         return [
             'yearly_target' => $yearlyTarget,
             'monthly_target' => $monthlyTarget,
-            'total_profit_earned' => $totalProfitEarned,
-            'total_investor_dues' => $totalInvestorDues,
-            'total_expenses' => $totalExpenses,
-            'surplus' => $surplus,
+            'balance' => $balance,
             'yearly_progress' => min($yearlyProgress, 100),
-            'monthly_surplus' => $monthlySurplus,
             'monthly_progress' => min($monthlyProgress, 100),
-            'current_month_profit' => $currentMonthProfit,
-            'current_month_expenses' => $currentMonthExpenses['total'],
-            'current_month_investor_target' => $currentMonthInvestorTarget,
         ];
     }
 
