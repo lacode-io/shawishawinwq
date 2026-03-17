@@ -64,6 +64,7 @@ class RoleResource extends Resource
                         Forms\Components\CheckboxList::make('permissions')
                             ->label('')
                             ->relationship('permissions', 'name')
+                            ->getOptionLabelFromRecordUsing(fn ($record) => self::translatePermission($record->name))
                             ->columns(3)
                             ->gridDirection('row')
                             ->searchable(),
@@ -106,6 +107,55 @@ class RoleResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function translatePermission(string $name): string
+    {
+        $translations = [
+            'view_customers' => 'عرض الزبائن',
+            'create_customers' => 'إنشاء الزبائن',
+            'update_customers' => 'تعديل الزبائن',
+            'delete_customers' => 'حذف الزبائن',
+            'view_customer_payments' => 'عرض دفعات الزبائن',
+            'create_customer_payments' => 'إنشاء دفعات الزبائن',
+            'update_customer_payments' => 'تعديل دفعات الزبائن',
+            'delete_customer_payments' => 'حذف دفعات الزبائن',
+            'view_investors' => 'عرض المستثمرين',
+            'create_investors' => 'إنشاء المستثمرين',
+            'update_investors' => 'تعديل المستثمرين',
+            'delete_investors' => 'حذف المستثمرين',
+            'view_investor_payouts' => 'عرض دفعات المستثمرين',
+            'create_investor_payouts' => 'إنشاء دفعات المستثمرين',
+            'update_investor_payouts' => 'تعديل دفعات المستثمرين',
+            'delete_investor_payouts' => 'حذف دفعات المستثمرين',
+            'view_expenses' => 'عرض المصاريف',
+            'create_expenses' => 'إنشاء المصاريف',
+            'update_expenses' => 'تعديل المصاريف',
+            'delete_expenses' => 'حذف المصاريف',
+            'view_finance_closings' => 'عرض الإغلاقات المالية',
+            'create_finance_closings' => 'إنشاء الإغلاقات المالية',
+            'update_finance_closings' => 'تعديل الإغلاقات المالية',
+            'delete_finance_closings' => 'حذف الإغلاقات المالية',
+            'view_users' => 'عرض المستخدمين',
+            'create_users' => 'إنشاء المستخدمين',
+            'update_users' => 'تعديل المستخدمين',
+            'delete_users' => 'حذف المستخدمين',
+            'view_roles' => 'عرض الأدوار',
+            'create_roles' => 'إنشاء الأدوار',
+            'update_roles' => 'تعديل الأدوار',
+            'delete_roles' => 'حذف الأدوار',
+            'view_app_notes' => 'عرض الملاحظات',
+            'create_app_notes' => 'إنشاء الملاحظات',
+            'update_app_notes' => 'تعديل الملاحظات',
+            'delete_app_notes' => 'حذف الملاحظات',
+            'view_activity_log' => 'عرض سجل النشاطات',
+            'manage_settings' => 'إدارة الإعدادات',
+            'export_pdf' => 'تصدير PDF',
+            'view_finance_dashboard' => 'عرض لوحة المالية',
+            'mark_completed' => 'تحديد كمكتمل',
+        ];
+
+        return $translations[$name] ?? $name;
     }
 
     public static function getRelations(): array
