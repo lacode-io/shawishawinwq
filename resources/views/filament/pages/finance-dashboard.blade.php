@@ -130,19 +130,22 @@
                 <div>
                     <div class="text-sm text-gray-500 dark:text-gray-400">الأقساط المدفوعة</div>
                     <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ $iqd($stats['monthly_payments_in']) }}</div>
-                    <div class="text-xs text-gray-400 dark:text-gray-500">{{ $stats['payments_month_label'] }}</div>
+                    <div class="text-xs text-gray-400 dark:text-gray-500">{{ \Carbon\Carbon::create()->month($this->paymentsMonth)->translatedFormat('F') }} {{ $this->paymentsYear }}</div>
                 </div>
             </div>
-            <div class="flex items-center gap-1">
-                <button wire:click="$set('paymentsMonth', '{{ \Carbon\Carbon::parse($this->paymentsMonth)->subMonth()->format('Y-m') }}')"
-                    class="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300">
-                    <x-heroicon-o-chevron-right class="h-5 w-5" />
-                </button>
-                <span class="min-w-[100px] text-center text-sm font-medium text-gray-700 dark:text-gray-300">{{ $stats['payments_month_label'] }}</span>
-                <button wire:click="$set('paymentsMonth', '{{ \Carbon\Carbon::parse($this->paymentsMonth)->addMonth()->format('Y-m') }}')"
-                    class="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300">
-                    <x-heroicon-o-chevron-left class="h-5 w-5" />
-                </button>
+            <div class="flex items-center gap-2">
+                <select wire:model.live="paymentsMonth"
+                    class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                    @foreach(range(1, 12) as $m)
+                        <option value="{{ $m }}">{{ \Carbon\Carbon::create()->month($m)->translatedFormat('F') }}</option>
+                    @endforeach
+                </select>
+                <select wire:model.live="paymentsYear"
+                    class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                    @foreach(range(now()->year, 2024, -1) as $y)
+                        <option value="{{ $y }}">{{ $y }}</option>
+                    @endforeach
+                </select>
             </div>
         </div>
     </x-filament::section>
