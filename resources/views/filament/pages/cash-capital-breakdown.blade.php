@@ -51,83 +51,170 @@
         </div>
     </div>
 
-    {{-- ── الداخل والخارج ── --}}
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-
-        {{-- الداخل --}}
-        <div class="rounded-xl border border-green-200 bg-white p-5 dark:border-green-800 dark:bg-gray-900">
-            <div class="flex items-center gap-2 mb-4">
-                <div class="rounded-lg bg-green-50 p-2 dark:bg-green-900/20">
-                    <x-heroicon-o-arrow-down-tray class="h-5 w-5 text-green-600 dark:text-green-400" />
-                </div>
-                <h3 class="text-base font-bold text-green-700 dark:text-green-400">المبالغ الداخلة</h3>
-                <span class="mr-auto text-lg font-bold text-green-600 dark:text-green-400">{{ $iqd($stats['total_in']) }}</span>
+    {{-- ══════════════════════════════════════════════ --}}
+    {{-- ── المبالغ الداخلة ── --}}
+    {{-- ══════════════════════════════════════════════ --}}
+    <div class="rounded-xl border border-green-200 bg-white p-5 dark:border-green-800 dark:bg-gray-900">
+        <div class="flex items-center gap-2 mb-5">
+            <div class="rounded-lg bg-green-50 p-2 dark:bg-green-900/20">
+                <x-heroicon-o-arrow-down-tray class="h-5 w-5 text-green-600 dark:text-green-400" />
             </div>
-
-            <div class="space-y-3">
-                <div class="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3 dark:bg-gray-800">
-                    <div class="flex items-center gap-2">
-                        <x-heroicon-o-cog-6-tooth class="h-4 w-4 text-gray-400" />
-                        <span class="text-sm text-gray-700 dark:text-gray-300">رأس المال اليدوي (الإعدادات)</span>
-                    </div>
-                    <span class="font-semibold text-gray-900 dark:text-white">{{ $iqd($stats['manual_capital']) }}</span>
-                </div>
-
-                <div class="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3 dark:bg-gray-800">
-                    <div class="flex items-center gap-2">
-                        <x-heroicon-o-banknotes class="h-4 w-4 text-gray-400" />
-                        <span class="text-sm text-gray-700 dark:text-gray-300">تسديدات الزبائن</span>
-                    </div>
-                    <span class="font-semibold text-gray-900 dark:text-white">{{ $iqd($stats['total_payments_in']) }}</span>
-                </div>
-
-                <div class="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3 dark:bg-gray-800">
-                    <div class="flex items-center gap-2">
-                        <x-heroicon-o-user-group class="h-4 w-4 text-gray-400" />
-                        <span class="text-sm text-gray-700 dark:text-gray-300">استثمارات المستثمرين</span>
-                    </div>
-                    <span class="font-semibold text-gray-900 dark:text-white">{{ $iqd($stats['total_investments']) }}</span>
-                </div>
-            </div>
+            <h3 class="text-lg font-bold text-green-700 dark:text-green-400">المبالغ الداخلة</h3>
+            <span class="mr-auto text-lg font-bold text-green-600 dark:text-green-400">{{ $iqd($stats['total_in']) }}</span>
         </div>
 
-        {{-- الخارج --}}
-        <div class="rounded-xl border border-red-200 bg-white p-5 dark:border-red-800 dark:bg-gray-900">
-            <div class="flex items-center gap-2 mb-4">
-                <div class="rounded-lg bg-red-50 p-2 dark:bg-red-900/20">
-                    <x-heroicon-o-arrow-up-tray class="h-5 w-5 text-red-600 dark:text-red-400" />
+        <div class="space-y-5">
+
+            {{-- 1. رأس المال اليدوي --}}
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="flex items-center justify-between bg-gray-50 px-4 py-3 dark:bg-gray-800">
+                    <div class="flex items-center gap-2">
+                        <x-heroicon-o-cog-6-tooth class="h-4 w-4 text-blue-500" />
+                        <span class="font-semibold text-gray-700 dark:text-gray-300">رأس المال اليدوي (الإعدادات)</span>
+                    </div>
+                    <span class="font-bold text-green-600 dark:text-green-400">{{ $iqd($stats['manual_capital']) }}</span>
                 </div>
-                <h3 class="text-base font-bold text-red-700 dark:text-red-400">المبالغ الخارجة</h3>
-                <span class="mr-auto text-lg font-bold text-red-600 dark:text-red-400">{{ $iqd($stats['total_out']) }}</span>
+                <div class="px-4 py-2 text-xs text-gray-500 dark:text-gray-400">
+                    رقم واحد مدخل يدوياً من إعدادات النظام
+                </div>
             </div>
 
-            <div class="space-y-3">
-                <div class="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3 dark:bg-gray-800">
+            {{-- 2. تسديدات الزبائن --}}
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="flex items-center justify-between bg-gray-50 px-4 py-3 dark:bg-gray-800">
                     <div class="flex items-center gap-2">
-                        <x-heroicon-o-receipt-percent class="h-4 w-4 text-gray-400" />
-                        <span class="text-sm text-gray-700 dark:text-gray-300">المصاريف (شخصية + تجارية + رواتب)</span>
+                        <x-heroicon-o-banknotes class="h-4 w-4 text-blue-500" />
+                        <span class="font-semibold text-gray-700 dark:text-gray-300">تسديدات الزبائن</span>
+                        <span class="text-xs text-gray-400">({{ count($stats['payments_by_customer']) }} زبون)</span>
                     </div>
-                    <span class="font-semibold text-gray-900 dark:text-white">{{ $iqd($stats['total_expenses']) }}</span>
+                    <span class="font-bold text-green-600 dark:text-green-400">{{ $iqd($stats['total_payments_in']) }}</span>
                 </div>
-
-                <div class="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3 dark:bg-gray-800">
-                    <div class="flex items-center gap-2">
-                        <x-heroicon-o-arrow-trending-up class="h-4 w-4 text-gray-400" />
-                        <span class="text-sm text-gray-700 dark:text-gray-300">دفعات المستثمرين</span>
+                @if(count($stats['payments_by_customer']) > 0)
+                <div class="divide-y divide-gray-100 dark:divide-gray-800">
+                    @foreach($stats['payments_by_customer'] as $item)
+                    <div class="flex items-center justify-between px-4 py-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm text-gray-600 dark:text-gray-400">{{ $item['name'] }}</span>
+                            <span class="text-xs text-gray-400">({{ $item['count'] }} دفعة)</span>
+                        </div>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $iqd($item['total']) }}</span>
                     </div>
-                    <span class="font-semibold text-gray-900 dark:text-white">{{ $iqd($stats['total_investor_payouts']) }}</span>
+                    @endforeach
                 </div>
-
-                <div class="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3 dark:bg-gray-800">
-                    <div class="flex items-center gap-2">
-                        <x-heroicon-o-shopping-cart class="h-4 w-4 text-gray-400" />
-                        <span class="text-sm text-gray-700 dark:text-gray-300">سعر شراء البضائع (رأس المال المستخدم)</span>
-                    </div>
-                    <span class="font-semibold text-gray-900 dark:text-white">{{ $iqd($stats['total_cost_price']) }}</span>
-                </div>
+                @endif
             </div>
+
+            {{-- 3. استثمارات المستثمرين --}}
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="flex items-center justify-between bg-gray-50 px-4 py-3 dark:bg-gray-800">
+                    <div class="flex items-center gap-2">
+                        <x-heroicon-o-user-group class="h-4 w-4 text-blue-500" />
+                        <span class="font-semibold text-gray-700 dark:text-gray-300">استثمارات المستثمرين</span>
+                        <span class="text-xs text-gray-400">({{ count($stats['investors_list']) }} مستثمر)</span>
+                    </div>
+                    <span class="font-bold text-green-600 dark:text-green-400">{{ $iqd($stats['total_investments']) }}</span>
+                </div>
+                @if(count($stats['investors_list']) > 0)
+                <div class="divide-y divide-gray-100 dark:divide-gray-800">
+                    @foreach($stats['investors_list'] as $item)
+                    <div class="flex items-center justify-between px-4 py-2">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">{{ $item['name'] }}</span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $iqd($item['amount']) }}</span>
+                    </div>
+                    @endforeach
+                </div>
+                @endif
+            </div>
+
+        </div>
+    </div>
+
+    {{-- ══════════════════════════════════════════════ --}}
+    {{-- ── المبالغ الخارجة ── --}}
+    {{-- ══════════════════════════════════════════════ --}}
+    <div class="rounded-xl border border-red-200 bg-white p-5 dark:border-red-800 dark:bg-gray-900">
+        <div class="flex items-center gap-2 mb-5">
+            <div class="rounded-lg bg-red-50 p-2 dark:bg-red-900/20">
+                <x-heroicon-o-arrow-up-tray class="h-5 w-5 text-red-600 dark:text-red-400" />
+            </div>
+            <h3 class="text-lg font-bold text-red-700 dark:text-red-400">المبالغ الخارجة</h3>
+            <span class="mr-auto text-lg font-bold text-red-600 dark:text-red-400">{{ $iqd($stats['total_out']) }}</span>
         </div>
 
+        <div class="space-y-5">
+
+            {{-- 4. المصاريف --}}
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="flex items-center justify-between bg-gray-50 px-4 py-3 dark:bg-gray-800">
+                    <div class="flex items-center gap-2">
+                        <x-heroicon-o-receipt-percent class="h-4 w-4 text-red-500" />
+                        <span class="font-semibold text-gray-700 dark:text-gray-300">المصاريف</span>
+                    </div>
+                    <span class="font-bold text-red-600 dark:text-red-400">{{ $iqd($stats['total_expenses']) }}</span>
+                </div>
+                @if(count($stats['expenses_by_type']) > 0)
+                <div class="divide-y divide-gray-100 dark:divide-gray-800">
+                    @foreach($stats['expenses_by_type'] as $item)
+                    <div class="flex items-center justify-between px-4 py-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm text-gray-600 dark:text-gray-400">{{ $item['type'] }}</span>
+                            <span class="text-xs text-gray-400">({{ $item['count'] }} مصروف)</span>
+                        </div>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $iqd($item['total']) }}</span>
+                    </div>
+                    @endforeach
+                </div>
+                @endif
+            </div>
+
+            {{-- 5. دفعات المستثمرين --}}
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="flex items-center justify-between bg-gray-50 px-4 py-3 dark:bg-gray-800">
+                    <div class="flex items-center gap-2">
+                        <x-heroicon-o-arrow-trending-up class="h-4 w-4 text-red-500" />
+                        <span class="font-semibold text-gray-700 dark:text-gray-300">دفعات المستثمرين</span>
+                        <span class="text-xs text-gray-400">({{ count($stats['payouts_by_investor']) }} مستثمر)</span>
+                    </div>
+                    <span class="font-bold text-red-600 dark:text-red-400">{{ $iqd($stats['total_investor_payouts']) }}</span>
+                </div>
+                @if(count($stats['payouts_by_investor']) > 0)
+                <div class="divide-y divide-gray-100 dark:divide-gray-800">
+                    @foreach($stats['payouts_by_investor'] as $item)
+                    <div class="flex items-center justify-between px-4 py-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm text-gray-600 dark:text-gray-400">{{ $item['name'] }}</span>
+                            <span class="text-xs text-gray-400">({{ $item['count'] }} دفعة)</span>
+                        </div>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $iqd($item['total']) }}</span>
+                    </div>
+                    @endforeach
+                </div>
+                @endif
+            </div>
+
+            {{-- 6. سعر شراء البضائع --}}
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="flex items-center justify-between bg-gray-50 px-4 py-3 dark:bg-gray-800">
+                    <div class="flex items-center gap-2">
+                        <x-heroicon-o-shopping-cart class="h-4 w-4 text-red-500" />
+                        <span class="font-semibold text-gray-700 dark:text-gray-300">سعر شراء البضائع</span>
+                        <span class="text-xs text-gray-400">({{ count($stats['cost_by_customer']) }} زبون)</span>
+                    </div>
+                    <span class="font-bold text-red-600 dark:text-red-400">{{ $iqd($stats['total_cost_price']) }}</span>
+                </div>
+                @if(count($stats['cost_by_customer']) > 0)
+                <div class="divide-y divide-gray-100 dark:divide-gray-800">
+                    @foreach($stats['cost_by_customer'] as $item)
+                    <div class="flex items-center justify-between px-4 py-2">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">{{ $item['name'] }}</span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $iqd($item['cost']) }}</span>
+                    </div>
+                    @endforeach
+                </div>
+                @endif
+            </div>
+
+        </div>
     </div>
 
     {{-- ── النتيجة النهائية ── --}}

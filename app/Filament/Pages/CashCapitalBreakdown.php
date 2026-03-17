@@ -8,7 +8,6 @@ use App\Models\Expense;
 use App\Models\Investor;
 use App\Models\InvestorPayout;
 use App\Models\Setting;
-use App\Services\FinanceService;
 use Filament\Pages\Page;
 
 class CashCapitalBreakdown extends Page
@@ -42,6 +41,59 @@ class CashCapitalBreakdown extends Page
 
         $cashCapital = $manualCapital + $totalPaymentsIn + $totalInvestments - $totalExpenses - $totalInvestorPayouts - $totalCostPrice;
 
+        // تفاصيل تسديدات الزبائن - مجمعة حسب الزبون
+        $paymentsByCustomer = CustomerPayment::with('customer')
+            ->selectRaw('customer_id, SUM(amount) as total_amount, COUNT(*) as payments_count')
+            ->groupBy('customer_id')
+            ->orderByDesc('total_amount')
+            ->get()
+            ->map(fn ($p) => [
+                'name' => $p->customer?->full_name ?? 'محذوف',
+                'total' => (int) $p->total_amount,
+                'count' => $p->payments_count,
+            ])->all();
+
+        // تفاصيل استثمارات المستثمرين
+        $investorsList = Investor::orderByDesc('amount_invested')
+            ->get()
+            ->map(fn ($i) => [
+                'name' => $i->full_name,
+                'amount' => (int) $i->amount_invested,
+            ])->all();
+
+        // تفاصيل المصاريف - مجمعة حسب النوع
+        $expensesByType = Expense::selectRaw('type, SUM(amount) as total_amount, COUNT(*) as expenses_count')
+            ->groupBy('type')
+            ->orderByDesc('total_amount')
+            ->get()
+            ->map(fn ($e) => [
+                'type' => $e->type->label(),
+                'total' => (int) $e->total_amount,
+                'count' => $e->expenses_count,
+            ])->all();
+
+        // تفاصيل دفعات المستثمرين - مجمعة حسب المستثمر
+        $payoutsByInvestor = InvestorPayout::with('investor')
+            ->selectRaw('investor_id, SUM(amount) as total_amount, COUNT(*) as payouts_count')
+            ->groupBy('investor_id')
+            ->orderByDesc('total_amount')
+            ->get()
+            ->map(fn ($p) => [
+                'name' => $p->investor?->full_name ?? 'محذوف',
+                'total' => (int) $p->total_amount,
+                'count' => $p->payouts_count,
+            ])->all();
+
+        // تفاصيل سعر شراء البضائع - حسب الزبون
+        $costByCustomer = Customer::whereNotNull('product_cost_price')
+            ->where('product_cost_price', '>', 0)
+            ->orderByDesc('product_cost_price')
+            ->get()
+            ->map(fn ($c) => [
+                'name' => $c->full_name,
+                'cost' => (int) $c->product_cost_price,
+            ])->all();
+
         return [
             'manual_capital' => $manualCapital,
             'total_payments_in' => $totalPaymentsIn,
@@ -50,11 +102,15 @@ class CashCapitalBreakdown extends Page
             'total_investor_payouts' => $totalInvestorPayouts,
             'total_cost_price' => $totalCostPrice,
             'cash_capital' => $cashCapital,
-
-            // الداخل
             'total_in' => $manualCapital + $totalPaymentsIn + $totalInvestments,
-            // الخارج
             'total_out' => $totalExpenses + $totalInvestorPayouts + $totalCostPrice,
+
+            // التفاصيل
+            'payments_by_customer' => $paymentsByCustomer,
+            'investors_list' => $investorsList,
+            'expenses_by_type' => $expensesByType,
+            'payouts_by_investor' => $payoutsByInvestor,
+            'cost_by_customer' => $costByCustomer,
         ];
     }
 }
