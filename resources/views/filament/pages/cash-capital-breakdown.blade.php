@@ -167,25 +167,41 @@
                 @endif
             </div>
 
-            {{-- 5. دفعات المستثمرين --}}
+            {{-- 5. مستحقات المستثمرين --}}
             <div class="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="flex items-center justify-between bg-gray-50 px-4 py-3 dark:bg-gray-800">
                     <div class="flex items-center gap-2">
                         <x-heroicon-o-arrow-trending-up class="h-4 w-4 text-red-500" />
-                        <span class="font-semibold text-gray-700 dark:text-gray-300">دفعات المستثمرين</span>
+                        <span class="font-semibold text-gray-700 dark:text-gray-300">مستحقات المستثمرين</span>
                         <span class="text-xs text-gray-400">({{ count($stats['payouts_by_investor']) }} مستثمر)</span>
                     </div>
-                    <span class="font-bold text-red-600 dark:text-red-400">{{ $iqd($stats['total_investor_payouts']) }}</span>
+                    <div class="text-left">
+                        <div class="font-bold text-red-600 dark:text-red-400">{{ $iqd($stats['total_investor_payouts']) }}</div>
+                        <div class="text-xs text-gray-400">المدفوع | المتبقي: <span class="text-orange-500 font-semibold">{{ $iqd($stats['total_remaining_investors']) }}</span></div>
+                    </div>
                 </div>
                 @if(count($stats['payouts_by_investor']) > 0)
                 <div class="divide-y divide-gray-100 dark:divide-gray-800">
                     @foreach($stats['payouts_by_investor'] as $item)
-                    <div class="flex items-center justify-between px-4 py-2">
+                    <div class="flex items-center justify-between px-4 py-2.5">
                         <div class="flex items-center gap-2">
                             <span class="text-sm text-gray-600 dark:text-gray-400">{{ $item['name'] }}</span>
                             <span class="text-xs text-gray-400">({{ $item['count'] }} دفعة)</span>
                         </div>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $iqd($item['total']) }}</span>
+                        <div class="flex items-center gap-3 text-sm">
+                            <div class="text-left">
+                                <div class="text-xs text-gray-400">المستحق</div>
+                                <span class="font-medium text-gray-900 dark:text-white">{{ $iqd($item['total_due']) }}</span>
+                            </div>
+                            <div class="text-left">
+                                <div class="text-xs text-gray-400">المدفوع</div>
+                                <span class="font-medium text-green-600 dark:text-green-400">{{ $iqd($item['total_paid']) }}</span>
+                            </div>
+                            <div class="text-left">
+                                <div class="text-xs text-gray-400">المتبقي</div>
+                                <span class="font-bold {{ $item['remaining'] > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400' }}">{{ $iqd($item['remaining']) }}</span>
+                            </div>
+                        </div>
                     </div>
                     @endforeach
                 </div>

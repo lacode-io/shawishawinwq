@@ -72,17 +72,19 @@ class CashCapitalBreakdown extends Page
                 'count' => $e->expenses_count,
             ])->all();
 
-        // تفاصيل دفعات المستثمرين - مجمعة حسب المستثمر
-        $payoutsByInvestor = InvestorPayout::with('investor')
-            ->selectRaw('investor_id, SUM(amount) as total_amount, COUNT(*) as payouts_count')
-            ->groupBy('investor_id')
-            ->orderByDesc('total_amount')
+        // تفاصيل دفعات المستثمرين - مع المستحق المتبقي
+        $payoutsByInvestor = Investor::with('payouts')
+            ->orderByDesc('amount_invested')
             ->get()
-            ->map(fn ($p) => [
-                'name' => $p->investor?->full_name ?? 'محذوف',
-                'total' => (int) $p->total_amount,
-                'count' => $p->payouts_count,
+            ->map(fn ($i) => [
+                'name' => $i->full_name,
+                'total_due' => $i->total_due,
+                'total_paid' => $i->total_paid_out,
+                'remaining' => $i->remaining_balance,
+                'count' => $i->payouts->count(),
             ])->all();
+
+        $totalRemainingInvestors = (int) collect($payoutsByInvestor)->sum('remaining');
 
         // تفاصيل سعر شراء البضائع - حسب الزبون
         $costByCustomer = Customer::whereNotNull('product_cost_price')
@@ -110,6 +112,7 @@ class CashCapitalBreakdown extends Page
             'investors_list' => $investorsList,
             'expenses_by_type' => $expensesByType,
             'payouts_by_investor' => $payoutsByInvestor,
+            'total_remaining_investors' => $totalRemainingInvestors,
             'cost_by_customer' => $costByCustomer,
         ];
     }

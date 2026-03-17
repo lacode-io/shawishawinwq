@@ -67,8 +67,61 @@ class FinanceDashboard extends Page implements HasForms
             // ── تفاصيل رأس المال الكاش ──
             'manual_cash_capital' => (int) Setting::instance()->cash_capital,
             'total_payments_in' => (int) CustomerPayment::sum('amount'),
+            'total_investments' => (int) Investor::sum('amount_invested'),
             'total_expenses_all' => (int) Expense::sum('amount'),
             'total_investor_payouts_all' => (int) InvestorPayout::sum('amount'),
+            'total_cost_price' => (int) Customer::whereNotNull('product_cost_price')->sum('product_cost_price'),
+
+            // ── تفاصيل كل بند ──
+            'payments_by_customer' => CustomerPayment::with('customer')
+                ->selectRaw('customer_id, SUM(amount) as total_amount, COUNT(*) as payments_count')
+                ->groupBy('customer_id')
+                ->orderByDesc('total_amount')
+                ->get()
+                ->map(fn ($p) => [
+                    'name' => $p->customer?->full_name ?? 'محذوف',
+                    'total' => (int) $p->total_amount,
+                    'count' => $p->payments_count,
+                ])->all(),
+
+            'investors_list' => Investor::orderByDesc('amount_invested')
+                ->get()
+                ->map(fn ($i) => [
+                    'name' => $i->full_name,
+                    'amount' => (int) $i->amount_invested,
+                ])->all(),
+
+            'expenses_by_type' => Expense::selectRaw('type, SUM(amount) as total_amount, COUNT(*) as expenses_count')
+                ->groupBy('type')
+                ->orderByDesc('total_amount')
+                ->get()
+                ->map(fn ($e) => [
+                    'type' => $e->type->label(),
+                    'total' => (int) $e->total_amount,
+                    'count' => $e->expenses_count,
+                ])->all(),
+
+            'payouts_by_investor' => Investor::with('payouts')
+                ->orderByDesc('amount_invested')
+                ->get()
+                ->map(fn ($i) => [
+                    'name' => $i->full_name,
+                    'total_due' => $i->total_due,
+                    'total_paid' => $i->total_paid_out,
+                    'remaining' => $i->remaining_balance,
+                    'count' => $i->payouts->count(),
+                ])->all(),
+
+            'total_remaining_investors' => (int) Investor::with('payouts')->get()->sum(fn ($i) => $i->remaining_balance),
+
+            'cost_by_customer' => Customer::whereNotNull('product_cost_price')
+                ->where('product_cost_price', '>', 0)
+                ->orderByDesc('product_cost_price')
+                ->get()
+                ->map(fn ($c) => [
+                    'name' => $c->full_name,
+                    'cost' => (int) $c->product_cost_price,
+                ])->all(),
 
             // ── القاصة ──
             'cash_register' => $finance->cashRegister(),
