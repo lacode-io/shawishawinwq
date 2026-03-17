@@ -166,113 +166,120 @@
             </div>
         </div>
 
-        {{-- التفاصيل --}}
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {{-- التفاصيل - دروب داون --}}
+        <details class="group mt-2">
+            <summary class="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                <x-heroicon-o-chevron-left class="h-4 w-4 transition-transform duration-200 group-open:-rotate-90" />
+                عرض التفاصيل
+            </summary>
 
-            {{-- الداخل --}}
-            <div class="rounded-lg border border-green-200 p-4 dark:border-green-800">
-                <div class="flex items-center gap-2 mb-3">
-                    <x-heroicon-o-arrow-down-tray class="h-4 w-4 text-green-600 dark:text-green-400" />
-                    <span class="text-sm font-bold text-green-700 dark:text-green-400">المبالغ الداخلة</span>
-                    <span class="mr-auto text-sm font-bold text-green-600 dark:text-green-400">{{ $iqd($stats['manual_cash_capital'] + $stats['total_payments_in'] + $stats['total_investments']) }}</span>
-                </div>
+            <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
 
-                {{-- رأس المال اليدوي --}}
-                <div class="rounded-lg border border-gray-100 dark:border-gray-800 mb-2 overflow-hidden">
-                    <div class="flex items-center justify-between bg-gray-50 px-3 py-2 dark:bg-gray-800">
-                        <span class="text-xs font-semibold text-gray-600 dark:text-gray-400"><x-heroicon-o-cog-6-tooth class="inline h-3.5 w-3.5" /> رأس المال اليدوي</span>
-                        <span class="text-xs font-bold text-green-600 dark:text-green-400">{{ $iqd($stats['manual_cash_capital']) }}</span>
+                {{-- الداخل --}}
+                <div class="rounded-lg border border-green-200 p-4 dark:border-green-800">
+                    <div class="flex items-center gap-2 mb-3">
+                        <x-heroicon-o-arrow-down-tray class="h-4 w-4 text-green-600 dark:text-green-400" />
+                        <span class="text-sm font-bold text-green-700 dark:text-green-400">المبالغ الداخلة</span>
+                        <span class="mr-auto text-sm font-bold text-green-600 dark:text-green-400">{{ $iqd($stats['manual_cash_capital'] + $stats['total_payments_in'] + $stats['total_investments']) }}</span>
                     </div>
-                </div>
 
-                {{-- تسديدات الزبائن --}}
-                <div class="rounded-lg border border-gray-100 dark:border-gray-800 mb-2 overflow-hidden">
-                    <div class="flex items-center justify-between bg-gray-50 px-3 py-2 dark:bg-gray-800">
-                        <span class="text-xs font-semibold text-gray-600 dark:text-gray-400"><x-heroicon-o-banknotes class="inline h-3.5 w-3.5" /> تسديدات الزبائن ({{ count($stats['payments_by_customer']) }})</span>
-                        <span class="text-xs font-bold text-green-600 dark:text-green-400">{{ $iqd($stats['total_payments_in']) }}</span>
-                    </div>
-                    @foreach($stats['payments_by_customer'] as $item)
-                    <div class="flex items-center justify-between px-3 py-1.5 border-t border-gray-50 dark:border-gray-800">
-                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ $item['name'] }} <span class="text-gray-400">({{ $item['count'] }} دفعة)</span></span>
-                        <span class="text-xs text-gray-700 dark:text-gray-300">{{ $iqd($item['total']) }}</span>
-                    </div>
-                    @endforeach
-                </div>
-
-                {{-- استثمارات المستثمرين --}}
-                <div class="rounded-lg border border-gray-100 dark:border-gray-800 overflow-hidden">
-                    <div class="flex items-center justify-between bg-gray-50 px-3 py-2 dark:bg-gray-800">
-                        <span class="text-xs font-semibold text-gray-600 dark:text-gray-400"><x-heroicon-o-user-group class="inline h-3.5 w-3.5" /> استثمارات المستثمرين ({{ count($stats['investors_list']) }})</span>
-                        <span class="text-xs font-bold text-green-600 dark:text-green-400">{{ $iqd($stats['total_investments']) }}</span>
-                    </div>
-                    @foreach($stats['investors_list'] as $item)
-                    <div class="flex items-center justify-between px-3 py-1.5 border-t border-gray-50 dark:border-gray-800">
-                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ $item['name'] }}</span>
-                        <span class="text-xs text-gray-700 dark:text-gray-300">{{ $iqd($item['amount']) }}</span>
-                    </div>
-                    @endforeach
-                </div>
-            </div>
-
-            {{-- الخارج --}}
-            <div class="rounded-lg border border-red-200 p-4 dark:border-red-800">
-                <div class="flex items-center gap-2 mb-3">
-                    <x-heroicon-o-arrow-up-tray class="h-4 w-4 text-red-600 dark:text-red-400" />
-                    <span class="text-sm font-bold text-red-700 dark:text-red-400">المبالغ الخارجة</span>
-                    <span class="mr-auto text-sm font-bold text-red-600 dark:text-red-400">{{ $iqd($stats['total_expenses_all'] + $stats['total_investor_payouts_all'] + $stats['total_cost_price']) }}</span>
-                </div>
-
-                {{-- المصاريف --}}
-                <div class="rounded-lg border border-gray-100 dark:border-gray-800 mb-2 overflow-hidden">
-                    <div class="flex items-center justify-between bg-gray-50 px-3 py-2 dark:bg-gray-800">
-                        <span class="text-xs font-semibold text-gray-600 dark:text-gray-400"><x-heroicon-o-receipt-percent class="inline h-3.5 w-3.5" /> المصاريف</span>
-                        <span class="text-xs font-bold text-red-600 dark:text-red-400">{{ $iqd($stats['total_expenses_all']) }}</span>
-                    </div>
-                    @foreach($stats['expenses_by_type'] as $item)
-                    <div class="flex items-center justify-between px-3 py-1.5 border-t border-gray-50 dark:border-gray-800">
-                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ $item['type'] }} <span class="text-gray-400">({{ $item['count'] }})</span></span>
-                        <span class="text-xs text-gray-700 dark:text-gray-300">{{ $iqd($item['total']) }}</span>
-                    </div>
-                    @endforeach
-                </div>
-
-                {{-- مستحقات المستثمرين --}}
-                <div class="rounded-lg border border-gray-100 dark:border-gray-800 mb-2 overflow-hidden">
-                    <div class="flex items-center justify-between bg-gray-50 px-3 py-2 dark:bg-gray-800">
-                        <span class="text-xs font-semibold text-gray-600 dark:text-gray-400"><x-heroicon-o-arrow-trending-up class="inline h-3.5 w-3.5" /> دفعات المستثمرين</span>
-                        <div class="text-left">
-                            <span class="text-xs font-bold text-red-600 dark:text-red-400">{{ $iqd($stats['total_investor_payouts_all']) }}</span>
-                            <div class="text-[10px] text-gray-400">المتبقي: <span class="text-orange-500 font-semibold">{{ $iqd($stats['total_remaining_investors']) }}</span></div>
+                    {{-- رأس المال اليدوي --}}
+                    <div class="rounded-lg border border-gray-100 dark:border-gray-800 mb-2 overflow-hidden">
+                        <div class="flex items-center justify-between bg-gray-50 px-3 py-2 dark:bg-gray-800">
+                            <span class="text-xs font-semibold text-gray-600 dark:text-gray-400"><x-heroicon-o-cog-6-tooth class="inline h-3.5 w-3.5" /> رأس المال اليدوي</span>
+                            <span class="text-xs font-bold text-green-600 dark:text-green-400">{{ $iqd($stats['manual_cash_capital']) }}</span>
                         </div>
                     </div>
-                    @foreach($stats['payouts_by_investor'] as $item)
-                    <div class="flex items-center justify-between px-3 py-1.5 border-t border-gray-50 dark:border-gray-800">
-                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ $item['name'] }} <span class="text-gray-400">({{ $item['count'] }} دفعة)</span></span>
-                        <div class="flex items-center gap-2 text-xs">
-                            <span class="text-gray-400">مستحق: {{ $iqd($item['total_due']) }}</span>
-                            <span class="text-green-600 dark:text-green-400">مدفوع: {{ $iqd($item['total_paid']) }}</span>
-                            <span class="font-bold {{ $item['remaining'] > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400' }}">متبقي: {{ $iqd($item['remaining']) }}</span>
+
+                    {{-- تسديدات الزبائن --}}
+                    <div class="rounded-lg border border-gray-100 dark:border-gray-800 mb-2 overflow-hidden">
+                        <div class="flex items-center justify-between bg-gray-50 px-3 py-2 dark:bg-gray-800">
+                            <span class="text-xs font-semibold text-gray-600 dark:text-gray-400"><x-heroicon-o-banknotes class="inline h-3.5 w-3.5" /> تسديدات الزبائن ({{ count($stats['payments_by_customer']) }})</span>
+                            <span class="text-xs font-bold text-green-600 dark:text-green-400">{{ $iqd($stats['total_payments_in']) }}</span>
                         </div>
+                        @foreach($stats['payments_by_customer'] as $item)
+                        <div class="flex items-center justify-between px-3 py-1.5 border-t border-gray-50 dark:border-gray-800">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ $item['name'] }} <span class="text-gray-400">({{ $item['count'] }} دفعة)</span></span>
+                            <span class="text-xs text-gray-700 dark:text-gray-300">{{ $iqd($item['total']) }}</span>
+                        </div>
+                        @endforeach
                     </div>
-                    @endforeach
+
+                    {{-- استثمارات المستثمرين --}}
+                    <div class="rounded-lg border border-gray-100 dark:border-gray-800 overflow-hidden">
+                        <div class="flex items-center justify-between bg-gray-50 px-3 py-2 dark:bg-gray-800">
+                            <span class="text-xs font-semibold text-gray-600 dark:text-gray-400"><x-heroicon-o-user-group class="inline h-3.5 w-3.5" /> استثمارات المستثمرين ({{ count($stats['investors_list']) }})</span>
+                            <span class="text-xs font-bold text-green-600 dark:text-green-400">{{ $iqd($stats['total_investments']) }}</span>
+                        </div>
+                        @foreach($stats['investors_list'] as $item)
+                        <div class="flex items-center justify-between px-3 py-1.5 border-t border-gray-50 dark:border-gray-800">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ $item['name'] }}</span>
+                            <span class="text-xs text-gray-700 dark:text-gray-300">{{ $iqd($item['amount']) }}</span>
+                        </div>
+                        @endforeach
+                    </div>
                 </div>
 
-                {{-- سعر شراء البضائع --}}
-                <div class="rounded-lg border border-gray-100 dark:border-gray-800 overflow-hidden">
-                    <div class="flex items-center justify-between bg-gray-50 px-3 py-2 dark:bg-gray-800">
-                        <span class="text-xs font-semibold text-gray-600 dark:text-gray-400"><x-heroicon-o-shopping-cart class="inline h-3.5 w-3.5" /> سعر شراء البضائع ({{ count($stats['cost_by_customer']) }})</span>
-                        <span class="text-xs font-bold text-red-600 dark:text-red-400">{{ $iqd($stats['total_cost_price']) }}</span>
+                {{-- الخارج --}}
+                <div class="rounded-lg border border-red-200 p-4 dark:border-red-800">
+                    <div class="flex items-center gap-2 mb-3">
+                        <x-heroicon-o-arrow-up-tray class="h-4 w-4 text-red-600 dark:text-red-400" />
+                        <span class="text-sm font-bold text-red-700 dark:text-red-400">المبالغ الخارجة</span>
+                        <span class="mr-auto text-sm font-bold text-red-600 dark:text-red-400">{{ $iqd($stats['total_expenses_all'] + $stats['total_investor_payouts_all'] + $stats['total_cost_price']) }}</span>
                     </div>
-                    @foreach($stats['cost_by_customer'] as $item)
-                    <div class="flex items-center justify-between px-3 py-1.5 border-t border-gray-50 dark:border-gray-800">
-                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ $item['name'] }}</span>
-                        <span class="text-xs text-gray-700 dark:text-gray-300">{{ $iqd($item['cost']) }}</span>
+
+                    {{-- المصاريف --}}
+                    <div class="rounded-lg border border-gray-100 dark:border-gray-800 mb-2 overflow-hidden">
+                        <div class="flex items-center justify-between bg-gray-50 px-3 py-2 dark:bg-gray-800">
+                            <span class="text-xs font-semibold text-gray-600 dark:text-gray-400"><x-heroicon-o-receipt-percent class="inline h-3.5 w-3.5" /> المصاريف</span>
+                            <span class="text-xs font-bold text-red-600 dark:text-red-400">{{ $iqd($stats['total_expenses_all']) }}</span>
+                        </div>
+                        @foreach($stats['expenses_by_type'] as $item)
+                        <div class="flex items-center justify-between px-3 py-1.5 border-t border-gray-50 dark:border-gray-800">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ $item['type'] }} <span class="text-gray-400">({{ $item['count'] }})</span></span>
+                            <span class="text-xs text-gray-700 dark:text-gray-300">{{ $iqd($item['total']) }}</span>
+                        </div>
+                        @endforeach
                     </div>
-                    @endforeach
+
+                    {{-- مستحقات المستثمرين --}}
+                    <div class="rounded-lg border border-gray-100 dark:border-gray-800 mb-2 overflow-hidden">
+                        <div class="flex items-center justify-between bg-gray-50 px-3 py-2 dark:bg-gray-800">
+                            <span class="text-xs font-semibold text-gray-600 dark:text-gray-400"><x-heroicon-o-arrow-trending-up class="inline h-3.5 w-3.5" /> دفعات المستثمرين</span>
+                            <div class="text-left">
+                                <span class="text-xs font-bold text-red-600 dark:text-red-400">{{ $iqd($stats['total_investor_payouts_all']) }}</span>
+                                <div class="text-[10px] text-gray-400">المتبقي: <span class="text-orange-500 font-semibold">{{ $iqd($stats['total_remaining_investors']) }}</span></div>
+                            </div>
+                        </div>
+                        @foreach($stats['payouts_by_investor'] as $item)
+                        <div class="flex items-center justify-between px-3 py-1.5 border-t border-gray-50 dark:border-gray-800">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ $item['name'] }} <span class="text-gray-400">({{ $item['count'] }} دفعة)</span></span>
+                            <div class="flex items-center gap-2 text-xs">
+                                <span class="text-gray-400">مستحق: {{ $iqd($item['total_due']) }}</span>
+                                <span class="text-green-600 dark:text-green-400">مدفوع: {{ $iqd($item['total_paid']) }}</span>
+                                <span class="font-bold {{ $item['remaining'] > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400' }}">متبقي: {{ $iqd($item['remaining']) }}</span>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+
+                    {{-- سعر شراء البضائع --}}
+                    <div class="rounded-lg border border-gray-100 dark:border-gray-800 overflow-hidden">
+                        <div class="flex items-center justify-between bg-gray-50 px-3 py-2 dark:bg-gray-800">
+                            <span class="text-xs font-semibold text-gray-600 dark:text-gray-400"><x-heroicon-o-shopping-cart class="inline h-3.5 w-3.5" /> سعر شراء البضائع ({{ count($stats['cost_by_customer']) }})</span>
+                            <span class="text-xs font-bold text-red-600 dark:text-red-400">{{ $iqd($stats['total_cost_price']) }}</span>
+                        </div>
+                        @foreach($stats['cost_by_customer'] as $item)
+                        <div class="flex items-center justify-between px-3 py-1.5 border-t border-gray-50 dark:border-gray-800">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ $item['name'] }}</span>
+                            <span class="text-xs text-gray-700 dark:text-gray-300">{{ $iqd($item['cost']) }}</span>
+                        </div>
+                        @endforeach
+                    </div>
                 </div>
+
             </div>
-
-        </div>
+        </details>
     </div>
 
     {{-- ══════════════════════════════════════════════ --}}
