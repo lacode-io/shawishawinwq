@@ -85,8 +85,8 @@
                                     {{ $inv['elapsed_months'] }} / {{ $inv['investment_months'] }} شهر
                                 </span>
                             </div>
-                            <div class="w-full rounded-full h-3 overflow-hidden" style="background-color: rgb(229 231 235);">
-                                <div class="h-3 rounded-full bg-blue-500" style="width: {{ $monthsPct }}%; min-width: {{ $monthsPct > 0 ? '0.5rem' : '0' }};"></div>
+                            <div class="w-full rounded-full h-3 overflow-hidden bg-gray-200 dark:bg-gray-700">
+                                <div class="h-3 rounded-full" style="width: {{ $monthsPct }}%; min-width: {{ $monthsPct > 0 ? '0.5rem' : '0' }}; background-color: #3b82f6;"></div>
                             </div>
                             <div class="flex items-center justify-between mt-1">
                                 <span class="text-xs text-gray-400">{{ $iqd($inv['monthly_target']) }} / شهر</span>
@@ -103,8 +103,8 @@
                                     {{ $inv['months_progress'] }}%
                                 </span>
                             </div>
-                            <div class="w-full rounded-full h-3 overflow-hidden" style="background-color: rgb(229 231 235);">
-                                <div class="h-3 rounded-full {{ $progressBg($inv['months_progress']) }}" style="width: {{ $monthsPct }}%; min-width: {{ $monthsPct > 0 ? '0.5rem' : '0' }};"></div>
+                            <div class="w-full rounded-full h-3 overflow-hidden bg-gray-200 dark:bg-gray-700">
+                                <div class="h-3 rounded-full" style="width: {{ $monthsPct }}%; min-width: {{ $monthsPct > 0 ? '0.5rem' : '0' }}; background-color: {{ $inv['months_progress'] >= 75 ? '#22c55e' : ($inv['months_progress'] >= 40 ? '#eab308' : '#ef4444') }};"></div>
                             </div>
                             <div class="flex items-center justify-between mt-1">
                                 <span class="text-xs text-gray-400">{{ $iqd($inv['total_paid']) }}</span>
