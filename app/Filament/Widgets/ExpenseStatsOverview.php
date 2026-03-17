@@ -31,7 +31,10 @@ class ExpenseStatsOverview extends StatsOverviewWidget
         $salaryTotal = (int) Expense::where('type', ExpenseType::Salary)
             ->sum('amount');
 
-        $grandTotal = $haiderTotal + $thaqrTotal + $otherTotal + $businessTotal + $salaryTotal;
+        $commissionTotal = (int) Expense::where('type', ExpenseType::Commission)
+            ->sum('amount');
+
+        $grandTotal = $haiderTotal + $thaqrTotal + $otherTotal + $businessTotal + $salaryTotal + $commissionTotal;
 
         return [
             Stat::make('حيدر', Number::iqd($haiderTotal))
@@ -58,6 +61,11 @@ class ExpenseStatsOverview extends StatsOverviewWidget
                 ->description('حيدر + ذو الفقار')
                 ->color('success')
                 ->icon('heroicon-o-banknotes'),
+
+            Stat::make('كومشن', Number::iqd($commissionTotal))
+                ->description('إجمالي الكومشن')
+                ->color('danger')
+                ->icon('heroicon-o-currency-dollar'),
 
             Stat::make('الإجمالي الكلي', Number::iqd($grandTotal))
                 ->description('جميع المصاريف')

@@ -199,6 +199,11 @@ class CustomerResource extends Resource
                             ->options(collect(CustomerStatus::cases())->mapWithKeys(fn ($s) => [$s->value => $s->label()]))
                             ->default(CustomerStatus::Active->value)
                             ->required(),
+
+                        Forms\Components\Toggle::make('is_platform')
+                            ->label('منصة')
+                            ->helperText('هل الزبون من منصة؟')
+                            ->default(false),
                     ])->columns(2),
 
                 // ── معلومات البطاقة ──
@@ -285,6 +290,11 @@ class CustomerResource extends Resource
                     ->icon(fn (Customer $record): ?string => $record->is_late ? 'heroicon-o-exclamation-triangle' : null)
                     ->toggleable(),
 
+                Tables\Columns\IconColumn::make('is_platform')
+                    ->label('منصة')
+                    ->boolean()
+                    ->toggleable(),
+
                 Tables\Columns\TextColumn::make('status')
                     ->label(__('Status'))
                     ->badge()
@@ -327,6 +337,12 @@ class CustomerResource extends Resource
                     ->label('متأخرين')
                     ->toggle()
                     ->query(fn (Builder $query): Builder => $query->late()),
+
+                Tables\Filters\TernaryFilter::make('is_platform')
+                    ->label('نوع الزبون')
+                    ->placeholder('الكل')
+                    ->trueLabel('منصة')
+                    ->falseLabel('غير منصة'),
 
                 Tables\Filters\TrashedFilter::make()
                     ->label(__('Status')),

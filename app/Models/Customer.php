@@ -52,6 +52,7 @@ class Customer extends Model
         'duration_months',
         'monthly_installment_amount',
         'status',
+        'is_platform',
         'notes',
         'card_number',
         'card_code',
@@ -74,6 +75,7 @@ class Customer extends Model
             'product_price_usd' => 'integer',
             'monthly_installment_amount' => 'integer',
             'duration_months' => 'integer',
+            'is_platform' => 'boolean',
         ];
     }
 
