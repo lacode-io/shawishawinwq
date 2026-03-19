@@ -175,7 +175,7 @@ class FinanceService
         return (int) Customer::whereNotNull('product_cost_price')
             ->whereMonth('delivery_date', $month->month)
             ->whereYear('delivery_date', $month->year)
-            ->selectRaw('SUM(product_sale_total - product_cost_price) as profit')
+            ->selectRaw('SUM(CAST(product_sale_total AS SIGNED) - CAST(product_cost_price AS SIGNED)) as profit')
             ->value('profit') ?? 0;
     }
 
@@ -264,7 +264,7 @@ class FinanceService
 
         return (int) Customer::whereNotNull('product_cost_price')
             ->whereYear('delivery_date', $year)
-            ->selectRaw('SUM(product_sale_total - product_cost_price) as profit')
+            ->selectRaw('SUM(CAST(product_sale_total AS SIGNED) - CAST(product_cost_price AS SIGNED)) as profit')
             ->value('profit') ?? 0;
     }
 
@@ -291,7 +291,7 @@ class FinanceService
 
         $grossProfit = (int) Customer::whereNotNull('product_cost_price')
             ->whereBetween('delivery_date', [$from, $to])
-            ->selectRaw('SUM(product_sale_total - product_cost_price) as profit')
+            ->selectRaw('SUM(CAST(product_sale_total AS SIGNED) - CAST(product_cost_price AS SIGNED)) as profit')
             ->value('profit') ?? 0;
 
         $totalSales = (int) Customer::whereBetween('delivery_date', [$from, $to])
@@ -650,7 +650,7 @@ class FinanceService
         $monthlyProfit = (int) Customer::whereNotNull('product_cost_price')
             ->whereMonth('delivery_date', $month)
             ->whereYear('delivery_date', $year)
-            ->selectRaw('SUM(product_sale_total - product_cost_price) as profit')
+            ->selectRaw('SUM(CAST(product_sale_total AS SIGNED) - CAST(product_cost_price AS SIGNED)) as profit')
             ->value('profit') ?? 0;
 
         // تاركت المستثمرين الشهري
@@ -704,7 +704,7 @@ class FinanceService
         $monthlyProfit = (int) Customer::whereNotNull('product_cost_price')
             ->whereMonth('delivery_date', $month)
             ->whereYear('delivery_date', $year)
-            ->selectRaw('SUM(product_sale_total - product_cost_price) as profit')
+            ->selectRaw('SUM(CAST(product_sale_total AS SIGNED) - CAST(product_cost_price AS SIGNED)) as profit')
             ->value('profit') ?? 0;
 
         $monthlyInvestorTarget = (int) Investor::where('status', InvestorStatus::Active)
