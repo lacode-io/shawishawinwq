@@ -4,7 +4,7 @@
         $investors = $data['investor_targets'];
         $personal = $data['personal_target'];
         $cr = $data['cash_register'];
-        $iqd = fn(int $v) => \Illuminate\Support\Number::iqd($v);
+        $iqd = fn(?int $v) => \Illuminate\Support\Number::iqd($v ?? 0);
 
         $progressColor = fn(float $pct) => $pct >= 75 ? 'green' : ($pct >= 40 ? 'yellow' : 'red');
         $progressBg = fn(float $pct) => $pct >= 75 ? 'bg-green-500' : ($pct >= 40 ? 'bg-yellow-500' : 'bg-red-500');
