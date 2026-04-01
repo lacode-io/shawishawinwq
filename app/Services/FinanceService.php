@@ -170,12 +170,13 @@ class FinanceService
     /**
      * Monthly total profit = sum of (sale_total - cost_price) for customers added this month
      */
-    public function monthlyProfit(?Carbon $month = null): int
+    public function monthlyProfit(?int $month = null, ?int $year = null): int
     {
-        $month ??= now();
+        $month ??= now()->month;
+        $year ??= now()->year;
 
-        return (int) Customer::whereMonth('delivery_date', $month->month)
-            ->whereYear('delivery_date', $month->year)
+        return (int) Customer::whereMonth('delivery_date', $month)
+            ->whereYear('delivery_date', $year)
             ->selectRaw('SUM(CAST(product_sale_total AS SIGNED) - CAST(COALESCE(product_cost_price, 0) AS SIGNED)) as profit')
             ->value('profit') ?? 0;
     }
@@ -183,18 +184,19 @@ class FinanceService
     /**
      * Monthly net profit = gross profit - all expenses - investor monthly dues
      */
-    public function monthlyNetProfit(?Carbon $month = null): int
+    public function monthlyNetProfit(?int $month = null, ?int $year = null): int
     {
-        $month ??= now();
+        $month ??= now()->month;
+        $year ??= now()->year;
 
-        $totalExpenses = (int) Expense::whereMonth('spent_at', $month->month)
-            ->whereYear('spent_at', $month->year)
+        $totalExpenses = (int) Expense::whereMonth('spent_at', $month)
+            ->whereYear('spent_at', $year)
             ->sum('amount');
 
         $monthlyInvestorDues = (int) Investor::where('status', InvestorStatus::Active)
             ->sum('monthly_target_amount');
 
-        return $this->monthlyProfit($month) - $totalExpenses - $monthlyInvestorDues;
+        return $this->monthlyProfit($month, $year) - $totalExpenses - $monthlyInvestorDues;
     }
 
     /**
