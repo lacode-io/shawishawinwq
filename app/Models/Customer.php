@@ -110,11 +110,6 @@ class Customer extends Model
 
     public function getNextDueDateAttribute(): ?Carbon
     {
-        // لا يوجد تسديد
-        if ($this->payment_type === PaymentType::NoPayment) {
-            return null;
-        }
-
         // دفعة واحدة: تاريخ التسليم + عدد الأيام
         if ($this->payment_type === PaymentType::LumpSum) {
             if ($this->payments()->exists()) {
@@ -148,10 +143,6 @@ class Customer extends Model
     public function getIsLateAttribute(): bool
     {
         if ($this->status !== CustomerStatus::Active) {
-            return false;
-        }
-
-        if ($this->payment_type === PaymentType::NoPayment) {
             return false;
         }
 

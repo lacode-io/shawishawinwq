@@ -189,16 +189,14 @@ class CustomerResource extends Resource
 
                         Forms\Components\DatePicker::make('delivery_date')
                             ->label(__('Delivery Date'))
-                            ->required(fn (Forms\Get $get): bool => $get('payment_type') !== PaymentType::NoPayment->value)
+                            ->required()
                             ->native(false)
-                            ->displayFormat('Y/m/d')
-                            ->visible(fn (Forms\Get $get): bool => $get('payment_type') !== PaymentType::NoPayment->value),
+                            ->displayFormat('Y/m/d'),
 
                         Forms\Components\DatePicker::make('payment_due_date')
                             ->label('تاريخ التسديد')
                             ->native(false)
-                            ->displayFormat('Y/m/d')
-                            ->visible(fn (Forms\Get $get): bool => $get('payment_type') !== PaymentType::NoPayment->value),
+                            ->displayFormat('Y/m/d'),
 
                         // ── حقول الأقساط الشهرية ──
                         Forms\Components\TextInput::make('duration_months')
@@ -234,12 +232,6 @@ class CustomerResource extends Resource
                                 ? 'عدد الأيام بين كل دفعة واخرى'
                                 : 'عدد الأيام من تاريخ التسليم لاستحقاق الدفعة')
                             ->visible(fn (Forms\Get $get): bool => in_array($get('payment_type'), [PaymentType::LumpSum->value, PaymentType::DurationBased->value])),
-
-                        Forms\Components\Placeholder::make('no_payment_info')
-                            ->label('')
-                            ->content('لا يوجد تسديد - المبلغ المستحق 0 ولا يتطلب جدول أقساط')
-                            ->visible(fn (Forms\Get $get): bool => $get('payment_type') === PaymentType::NoPayment->value)
-                            ->columnSpanFull(),
 
                         Forms\Components\Select::make('status')
                             ->label(__('Status'))
@@ -441,6 +433,18 @@ class CustomerResource extends Resource
                         ->modalHeading(__('Payment').' - '.__('New'))
                         ->modalWidth('md')
                         ->form([
+                            Forms\Components\Select::make('payment_method')
+                                ->label(__('Payment Method'))
+                                ->options(collect(PaymentMethod::cases())->mapWithKeys(fn ($m) => [$m->value => $m->label()]))
+                                ->default(PaymentMethod::Cash->value)
+                                ->required()
+                                ->live()
+                                ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                    if ($state === PaymentMethod::NoPayment->value) {
+                                        $set('amount', 0);
+                                    }
+                                }),
+
                             Forms\Components\DatePicker::make('paid_at')
                                 ->label(__('Paid At'))
                                 ->required()
@@ -457,13 +461,9 @@ class CustomerResource extends Resource
                                 ->suffix(__('IQD'))
                                 ->default(fn (Customer $record): int => $record->payment_type === PaymentType::LumpSum
                                     ? $record->product_sale_total
-                                    : $record->monthly_installment_amount),
-
-                            Forms\Components\Select::make('payment_method')
-                                ->label(__('Payment Method'))
-                                ->options(collect(PaymentMethod::cases())->mapWithKeys(fn ($m) => [$m->value => $m->label()]))
-                                ->default(PaymentMethod::Cash->value)
-                                ->required(),
+                                    : $record->monthly_installment_amount)
+                                ->disabled(fn (Forms\Get $get): bool => $get('payment_method') === PaymentMethod::NoPayment->value)
+                                ->dehydrated(),
 
                             Forms\Components\Textarea::make('notes')
                                 ->label(__('Notes'))
@@ -492,7 +492,6 @@ class CustomerResource extends Resource
                                 ->send();
                         })
                         ->visible(fn (Customer $record): bool => $record->status === CustomerStatus::Active
-                            && $record->payment_type !== PaymentType::NoPayment
                             && auth()->user()->can('create', CustomerPayment::class)),
 
                     Tables\Actions\Action::make('mark_completed')
