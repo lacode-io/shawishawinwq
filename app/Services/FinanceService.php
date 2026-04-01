@@ -351,7 +351,7 @@ class FinanceService
     }
 
     /**
-     * Monthly profit from all active customers
+     * Monthly profit from all active customers (current snapshot)
      */
     public function monthlyProfitFromActiveCustomers(): array
     {
@@ -378,6 +378,42 @@ class FinanceService
             'active_count' => $customers->count(),
             'per_customer' => $perCustomer->all(),
         ];
+    }
+
+    /**
+     * الربح الموزع لشهر معين
+     * يجيب كل زبون كان فعال بذاك الشهر:
+     * - تاريخ تسليمه قبل أو خلال الشهر المطلوب
+     * - نهاية أقساطه (تاريخ التسليم + المدة بالأشهر) بعد بداية الشهر المطلوب
+     * ربح كل زبون = (سعر البيع - رأس المال) ÷ عدد الأشهر
+     */
+    public function distributedMonthlyProfit(int $month, int $year): int
+    {
+        $monthStart = Carbon::create($year, $month, 1)->startOfMonth();
+        $monthEnd = $monthStart->copy()->endOfMonth();
+
+        $customers = Customer::whereNotNull('product_cost_price')
+            ->where('product_cost_price', '>', 0)
+            ->where('duration_months', '>', 0)
+            ->where('delivery_date', '<=', $monthEnd)
+            ->get();
+
+        $total = 0;
+        foreach ($customers as $customer) {
+            // نهاية فترة الأقساط
+            $endDate = $customer->delivery_date->copy()->addMonths($customer->duration_months);
+
+            // اذا الزبون خلص أقساطه قبل هذا الشهر، ما ينحسب
+            if ($endDate->lt($monthStart)) {
+                continue;
+            }
+
+            $totalProfit = $customer->product_sale_total - $customer->product_cost_price;
+            $monthlyProfit = (int) round($totalProfit / $customer->duration_months);
+            $total += $monthlyProfit;
+        }
+
+        return $total;
     }
 
     /**
@@ -687,12 +723,8 @@ class FinanceService
             ->where('description', 'like', 'تصفية حسابات شهرية%')
             ->count();
 
-        // أرباح الشهر من الزبائن (فرق سعر البيع - الشراء)
-        $monthlyProfit = (int) Customer::whereNotNull('product_cost_price')
-            ->whereMonth('delivery_date', $month)
-            ->whereYear('delivery_date', $year)
-            ->selectRaw('SUM(CAST(product_sale_total AS SIGNED) - CAST(product_cost_price AS SIGNED)) as profit')
-            ->value('profit') ?? 0;
+        // أرباح الشهر الموزعة (ربح كل زبون فعال بهذا الشهر ÷ أشهره)
+        $monthlyProfit = $this->distributedMonthlyProfit($month, $year);
 
         // تاركت المستثمرين الشهري
         $monthlyInvestorTarget = (int) Investor::where('status', InvestorStatus::Active)
@@ -746,11 +778,7 @@ class FinanceService
         $month ??= now()->month;
         $year ??= now()->year;
 
-        $monthlyProfit = (int) Customer::whereNotNull('product_cost_price')
-            ->whereMonth('delivery_date', $month)
-            ->whereYear('delivery_date', $year)
-            ->selectRaw('SUM(CAST(product_sale_total AS SIGNED) - CAST(product_cost_price AS SIGNED)) as profit')
-            ->value('profit') ?? 0;
+        $monthlyProfit = $this->distributedMonthlyProfit($month, $year);
 
         $monthlyInvestorTarget = (int) Investor::where('status', InvestorStatus::Active)
             ->sum('monthly_target_amount');
@@ -763,10 +791,13 @@ class FinanceService
             ->where('description', 'like', 'تصفية حسابات شهرية%')
             ->count();
 
-        // عدد الزبائن هذا الشهر
+        // عدد الزبائن الفعالين بهذا الشهر
+        $monthEnd = Carbon::create($year, $month, 1)->endOfMonth();
+        $monthStart = Carbon::create($year, $month, 1)->startOfMonth();
         $customersCount = Customer::whereNotNull('product_cost_price')
-            ->whereMonth('delivery_date', $month)
-            ->whereYear('delivery_date', $year)
+            ->where('duration_months', '>', 0)
+            ->where('delivery_date', '<=', $monthEnd)
+            ->whereRaw('DATE_ADD(delivery_date, INTERVAL duration_months MONTH) >= ?', [$monthStart])
             ->count();
 
         return [
@@ -844,34 +875,48 @@ class FinanceService
      */
     public function settleAllPreview(): array
     {
-        // كل الأشهر الي فيها زبائن
-        $customerMonths = Customer::whereNotNull('product_cost_price')
-            ->selectRaw('MONTH(delivery_date) as m, YEAR(delivery_date) as y')
-            ->groupByRaw('YEAR(delivery_date), MONTH(delivery_date)')
-            ->get()
-            ->map(fn ($r) => ['month' => (int) $r->m, 'year' => (int) $r->y])
-            ->sortBy(fn ($item) => $item['year'] * 100 + $item['month'])
-            ->values();
+        // نجمع كل الأشهر من أول زبون لحد الشهر الحالي
+        $firstCustomer = Customer::whereNotNull('product_cost_price')
+            ->where('duration_months', '>', 0)
+            ->orderBy('delivery_date')
+            ->first();
+
+        if (! $firstCustomer) {
+            return [
+                'total_months' => 0, 'pending_count' => 0, 'details' => [],
+                'total_remaining' => 0, 'current_balance' => $this->cashRegisterBalance(),
+                'projected_balance' => $this->cashRegisterBalance(),
+            ];
+        }
+
+        $start = $firstCustomer->delivery_date->copy()->startOfMonth();
+        $end = now()->endOfMonth();
+
+        $allMonths = collect();
+        $current = $start->copy();
+        while ($current->lte($end)) {
+            $allMonths->push(['month' => $current->month, 'year' => $current->year]);
+            $current->addMonth();
+        }
 
         $monthlyInvestorTarget = (int) Investor::where('status', InvestorStatus::Active)
             ->sum('monthly_target_amount');
 
-        $details = $customerMonths->map(function ($item) use ($monthlyInvestorTarget) {
-            $profit = (int) Customer::whereNotNull('product_cost_price')
-                ->whereMonth('delivery_date', $item['month'])
-                ->whereYear('delivery_date', $item['year'])
-                ->selectRaw('SUM(CAST(product_sale_total AS SIGNED) - CAST(product_cost_price AS SIGNED)) as profit')
-                ->value('profit') ?? 0;
+        $details = $allMonths->map(function ($item) use ($monthlyInvestorTarget) {
+            $profit = $this->distributedMonthlyProfit($item['month'], $item['year']);
 
-            $expectedSettlement = $profit - $monthlyInvestorTarget;
-
-            // المبلغ المصفى سابقاً لهذا الشهر (مجموع الحركات: إيداع = موجب، سحب = سالب)
+            // اذا ما اكو ربح بهالشهر ولا تصفية سابقة، نتخطاه
             $alreadySettled = (int) CashRegisterTransaction::where('month', $item['month'])
                 ->where('year', $item['year'])
                 ->where('description', 'like', 'تصفية حسابات شهرية%')
                 ->selectRaw("SUM(CASE WHEN type = 'deposit' THEN amount ELSE -amount END) as net")
                 ->value('net') ?? 0;
 
+            if ($profit == 0 && $alreadySettled == 0 && $monthlyInvestorTarget == 0) {
+                return null;
+            }
+
+            $expectedSettlement = $profit - $monthlyInvestorTarget;
             $remaining = $expectedSettlement - $alreadySettled;
 
             return [
@@ -883,7 +928,7 @@ class FinanceService
                 'already_settled' => $alreadySettled,
                 'remaining' => $remaining,
             ];
-        })->all();
+        })->filter()->values()->all();
 
         $totalRemaining = collect($details)->sum('remaining');
         $pendingCount = collect($details)->filter(fn ($d) => $d['remaining'] != 0)->count();
