@@ -274,9 +274,10 @@ class FinanceService
     {
         $year ??= now()->year;
 
-        return (int) Customer::whereYear('delivery_date', $year)
-            ->selectRaw('SUM(CAST(product_sale_total AS SIGNED) - CAST(COALESCE(product_cost_price, 0) AS SIGNED)) as profit')
-            ->value('profit') ?? 0;
+        $customers = Customer::whereYear('delivery_date', $year)
+            ->get(['product_sale_total', 'product_cost_price']);
+
+        return (int) $customers->sum(fn ($c) => $c->product_sale_total - ($c->product_cost_price ?? 0));
     }
 
     /**
@@ -302,10 +303,9 @@ class FinanceService
     {
         $salesCount = Customer::whereBetween('delivery_date', [$from, $to])->count();
 
-        $grossProfit = (int) Customer::whereNotNull('product_cost_price')
-            ->whereBetween('delivery_date', [$from, $to])
-            ->selectRaw('SUM(CAST(product_sale_total AS SIGNED) - CAST(product_cost_price AS SIGNED)) as profit')
-            ->value('profit') ?? 0;
+        $grossProfit = (int) Customer::whereBetween('delivery_date', [$from, $to])
+            ->get(['product_sale_total', 'product_cost_price'])
+            ->sum(fn ($c) => $c->product_sale_total - ($c->product_cost_price ?? 0));
 
         $totalSales = (int) Customer::whereBetween('delivery_date', [$from, $to])
             ->sum('product_sale_total');
