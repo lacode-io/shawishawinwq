@@ -182,18 +182,20 @@ class FinanceService
     }
 
     /**
-     * Monthly net profit = gross profit - business expenses this month
+     * Monthly net profit = gross profit - all expenses - investor monthly dues
      */
     public function monthlyNetProfit(?Carbon $month = null): int
     {
         $month ??= now();
 
-        $businessExpenses = (int) Expense::whereIn('type', [ExpenseType::Business, ExpenseType::Custom])
-            ->whereMonth('spent_at', $month->month)
+        $totalExpenses = (int) Expense::whereMonth('spent_at', $month->month)
             ->whereYear('spent_at', $month->year)
             ->sum('amount');
 
-        return $this->monthlyProfit($month) - $businessExpenses;
+        $monthlyInvestorDues = (int) Investor::where('status', InvestorStatus::Active)
+            ->sum('monthly_target_amount');
+
+        return $this->monthlyProfit($month) - $totalExpenses - $monthlyInvestorDues;
     }
 
     /**
@@ -277,17 +279,19 @@ class FinanceService
     }
 
     /**
-     * Annual net profit = annual gross profit - annual business expenses
+     * Annual net profit = annual gross profit - all expenses - investor dues (12 months)
      */
     public function annualNetProfit(?int $year = null): int
     {
         $year ??= now()->year;
 
-        $businessExpenses = (int) Expense::whereIn('type', [ExpenseType::Business, ExpenseType::Custom])
-            ->whereYear('spent_at', $year)
+        $totalExpenses = (int) Expense::whereYear('spent_at', $year)
             ->sum('amount');
 
-        return $this->annualProfit($year) - $businessExpenses;
+        $yearlyInvestorDues = (int) Investor::where('status', InvestorStatus::Active)
+            ->sum('monthly_target_amount') * 12;
+
+        return $this->annualProfit($year) - $totalExpenses - $yearlyInvestorDues;
     }
 
     /**

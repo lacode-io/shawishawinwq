@@ -149,6 +149,10 @@ class FinanceDashboard extends Page implements HasForms
             'monthly_personal_expenses' => $expenses['personal'],
             'monthly_total_expenses' => $expenses['total'],
 
+            // ── Monthly Profit ──
+            'monthly_profit' => $finance->monthlyProfit(),
+            'monthly_net_profit' => $finance->monthlyNetProfit(),
+
             // ── Annual ──
             'annual_profit' => $finance->annualProfit(),
             'annual_net_profit' => $finance->annualNetProfit(),

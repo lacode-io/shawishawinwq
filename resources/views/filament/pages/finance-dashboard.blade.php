@@ -385,12 +385,13 @@
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <x-filament::section>
             <div class="flex items-center gap-3">
-                <div class="rounded-lg bg-green-50 p-2 dark:bg-green-900/20">
-                    <x-heroicon-o-chart-bar class="h-6 w-6 text-green-600 dark:text-green-400" />
+                <div class="rounded-lg {{ $stats['monthly_net_profit'] >= 0 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20' }} p-2">
+                    <x-heroicon-o-calendar class="h-6 w-6 {{ $stats['monthly_net_profit'] >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}" />
                 </div>
                 <div>
-                    <div class="text-sm text-gray-500 dark:text-gray-400">الربح السنوي الإجمالي ({{ now()->year }})</div>
-                    <div class="text-xl font-bold text-green-600 dark:text-green-400">{{ $iqd($stats['annual_profit']) }}</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">صافي الربح الشهري ({{ \Carbon\Carbon::now()->translatedFormat('F Y') }})</div>
+                    <div class="text-xl font-bold {{ $stats['monthly_net_profit'] >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">{{ $iqd($stats['monthly_net_profit']) }}</div>
+                    <div class="text-xs text-gray-400 dark:text-gray-500">الإجمالي − المصاريف − مستحقات المستثمرين</div>
                 </div>
             </div>
         </x-filament::section>
@@ -398,11 +399,12 @@
         <x-filament::section>
             <div class="flex items-center gap-3">
                 <div class="rounded-lg {{ $stats['annual_net_profit'] >= 0 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20' }} p-2">
-                    <x-heroicon-o-calculator class="h-6 w-6 {{ $stats['annual_net_profit'] >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}" />
+                    <x-heroicon-o-chart-bar class="h-6 w-6 {{ $stats['annual_net_profit'] >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}" />
                 </div>
                 <div>
-                    <div class="text-sm text-gray-500 dark:text-gray-400">صافي الربح السنوي ({{ now()->year }})</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">الربح السنوي ({{ now()->year }})</div>
                     <div class="text-xl font-bold {{ $stats['annual_net_profit'] >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">{{ $iqd($stats['annual_net_profit']) }}</div>
+                    <div class="text-xs text-gray-400 dark:text-gray-500">الإجمالي − المصاريف − مستحقات المستثمرين (12 شهر)</div>
                 </div>
             </div>
         </x-filament::section>
