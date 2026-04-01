@@ -168,13 +168,17 @@ class FinanceService
     }
 
     /**
-     * Monthly total profit = distributed profit for active customers in that month
+     * Monthly total profit = sum of (sale_total - cost_price) for customers added this month
      */
     public function monthlyProfit(?Carbon $month = null): int
     {
         $month ??= now();
 
-        return $this->distributedMonthlyProfit($month->month, $month->year);
+        return (int) Customer::whereNotNull('product_cost_price')
+            ->whereMonth('delivery_date', $month->month)
+            ->whereYear('delivery_date', $month->year)
+            ->selectRaw('SUM(CAST(product_sale_total AS SIGNED) - CAST(product_cost_price AS SIGNED)) as profit')
+            ->value('profit') ?? 0;
     }
 
     /**
@@ -262,18 +266,16 @@ class FinanceService
     }
 
     /**
-     * Annual profit = sum of distributed monthly profit for all 12 months
+     * Annual profit = sum of (sale_total - cost_price) for customers added this year
      */
     public function annualProfit(?int $year = null): int
     {
         $year ??= now()->year;
 
-        $total = 0;
-        for ($m = 1; $m <= 12; $m++) {
-            $total += $this->distributedMonthlyProfit($m, $year);
-        }
-
-        return $total;
+        return (int) Customer::whereNotNull('product_cost_price')
+            ->whereYear('delivery_date', $year)
+            ->selectRaw('SUM(CAST(product_sale_total AS SIGNED) - CAST(product_cost_price AS SIGNED)) as profit')
+            ->value('profit') ?? 0;
     }
 
     /**
