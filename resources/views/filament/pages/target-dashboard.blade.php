@@ -230,15 +230,13 @@
                         </select>
                     </div>
                 </div>
-                <div class="flex items-center justify-between mb-3">
-                    <div></div>
+                <div class="flex items-center justify-end mb-3">
                     @if($preview['already_settled'])
                         <span class="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700 dark:bg-green-900/40 dark:text-green-400">
                             <x-heroicon-o-check-circle class="h-3.5 w-3.5" />
                             تمت التصفية
                         </span>
                     @endif
-                    </div>
                 </div>
 
                 <div class="flex flex-wrap items-center justify-center gap-3 text-center text-sm mb-4">
