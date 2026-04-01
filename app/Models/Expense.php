@@ -29,6 +29,7 @@ class Expense extends Model
 
     protected $fillable = [
         'type',
+        'custom_type_name',
         'sub_type',
         'amount',
         'spent_at',

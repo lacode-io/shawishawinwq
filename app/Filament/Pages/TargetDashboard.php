@@ -16,6 +16,10 @@ class TargetDashboard extends Page
 
     protected static string $view = 'filament.pages.target-dashboard';
 
+    public ?int $settlementMonth = null;
+
+    public ?int $settlementYear = null;
+
     public static function canAccess(): bool
     {
         return auth()->user()->hasPermissionTo('view_targets');
@@ -36,6 +40,12 @@ class TargetDashboard extends Page
         return 'التاركت';
     }
 
+    public function mount(): void
+    {
+        $this->settlementMonth = now()->month;
+        $this->settlementYear = now()->year;
+    }
+
     public function getTargetData(): array
     {
         $finance = app(FinanceService::class);
@@ -46,24 +56,23 @@ class TargetDashboard extends Page
             'cash_register' => [
                 'balance' => $finance->cashRegisterBalance(),
                 'transactions' => $finance->cashRegisterTransactions(),
-                'preview' => $finance->settlementPreview(),
+                'preview' => $finance->settlementPreview($this->settlementMonth, $this->settlementYear),
             ],
         ];
     }
 
     protected function getHeaderActions(): array
     {
-        $finance = app(FinanceService::class);
-        $preview = $finance->settlementPreview();
-
         return [
             Actions\Action::make('settle_month')
                 ->label('تصفية الحسابات')
                 ->icon('heroicon-o-calculator')
                 ->color('warning')
                 ->requiresConfirmation()
-                ->modalHeading('تصفية حسابات شهر ' . $preview['month'] . '/' . $preview['year'])
-                ->modalDescription(function () use ($preview): string {
+                ->modalHeading(fn (): string => 'تصفية حسابات شهر ' . $this->settlementMonth . '/' . $this->settlementYear)
+                ->modalDescription(function (): string {
+                    $preview = app(FinanceService::class)->settlementPreview($this->settlementMonth, $this->settlementYear);
+
                     if ($preview['already_settled']) {
                         return 'تمت تصفية هذا الشهر مسبقاً!';
                     }
@@ -77,11 +86,10 @@ class TargetDashboard extends Page
                         . "رصيد القاصة بعد التصفية: {$iqd($preview['projected_balance'])}";
                 })
                 ->modalSubmitActionLabel('تأكيد التصفية')
-                ->disabled($preview['already_settled'])
-                ->action(function () use ($preview): void {
+                ->action(function (): void {
                     $result = app(FinanceService::class)->settleMonth(
-                        $preview['month'],
-                        $preview['year']
+                        $this->settlementMonth,
+                        $this->settlementYear
                     );
 
                     if ($result['success']) {

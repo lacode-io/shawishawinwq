@@ -92,6 +92,13 @@ class InvestorResource extends Resource
                             ->live(onBlur: true)
                             ->afterStateUpdated(fn (Forms\Get $get, Forms\Set $set) => self::recalculate($get, $set)),
 
+                        Forms\Components\TextInput::make('amount_usd')
+                            ->label('المبلغ بالدولار')
+                            ->numeric()
+                            ->mask(\Filament\Support\RawJs::make('$money($input, \',\', \'.\')'))
+                            ->stripCharacters(['.', ','])
+                            ->suffix('$'),
+
                         Forms\Components\TextInput::make('profit_percent_total')
                             ->label(__('Profit Percent'))
                             ->required()
@@ -129,8 +136,13 @@ class InvestorResource extends Resource
                             ->displayFormat('Y/m/d'),
 
                         Forms\Components\DatePicker::make('payout_due_date')
-                            ->label(__('Payout Due Date'))
+                            ->label('تاريخ الاستحقاق الشهري')
                             ->required()
+                            ->native(false)
+                            ->displayFormat('Y/m/d'),
+
+                        Forms\Components\DatePicker::make('total_payout_date')
+                            ->label('تاريخ التسديد الكلي')
                             ->native(false)
                             ->displayFormat('Y/m/d'),
 
@@ -139,7 +151,7 @@ class InvestorResource extends Resource
                             ->options(collect(InvestorStatus::cases())->mapWithKeys(fn ($s) => [$s->value => $s->label()]))
                             ->default(InvestorStatus::Active->value)
                             ->required(),
-                    ])->columns(3),
+                    ])->columns(2),
 
                 // ── ملاحظات ──
                 Forms\Components\Section::make(__('Notes'))
@@ -201,11 +213,24 @@ class InvestorResource extends Resource
                     })
                     ->icon(fn (Investor $record): ?string => $record->is_behind_target ? 'heroicon-o-exclamation-triangle' : null),
 
+                Tables\Columns\TextColumn::make('amount_usd')
+                    ->label('المبلغ بالدولار')
+                    ->formatStateUsing(fn (?int $state): string => $state ? '$' . number_format($state) : '-')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\TextColumn::make('payout_due_date')
-                    ->label(__('Payout Due Date'))
+                    ->label('تاريخ الاستحقاق الشهري')
                     ->date('Y/m/d')
                     ->sortable()
                     ->color(fn (Investor $record): string => $record->payout_due_date->isPast() && $record->status === InvestorStatus::Active ? 'danger' : 'gray'),
+
+                Tables\Columns\TextColumn::make('total_payout_date')
+                    ->label('تاريخ التسديد الكلي')
+                    ->date('Y/m/d')
+                    ->sortable()
+                    ->placeholder('-')
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('status')
                     ->label(__('Status'))
@@ -366,6 +391,9 @@ class InvestorResource extends Resource
                         Infolists\Components\TextEntry::make('amount_invested')
                             ->label(__('Amount Invested'))
                             ->formatStateUsing(fn (int $state): string => Number::iqd($state)),
+                        Infolists\Components\TextEntry::make('amount_usd')
+                            ->label('المبلغ بالدولار')
+                            ->formatStateUsing(fn (?int $state): string => $state ? '$' . number_format($state) : '-'),
                         Infolists\Components\TextEntry::make('profit_percent_total')
                             ->label(__('Profit Percent'))
                             ->suffix('%'),
@@ -377,7 +405,7 @@ class InvestorResource extends Resource
                             ->label(__('Total Due'))
                             ->formatStateUsing(fn (int $state): string => Number::iqd($state))
                             ->weight('bold'),
-                    ])->columns(4),
+                    ])->columns(5),
 
                 Infolists\Components\Section::make('تقدم السداد')
                     ->icon('heroicon-o-chart-bar')
@@ -425,15 +453,19 @@ class InvestorResource extends Resource
                             ->label(__('Start Date'))
                             ->date('Y/m/d'),
                         Infolists\Components\TextEntry::make('payout_due_date')
-                            ->label(__('Payout Due Date'))
+                            ->label('تاريخ الاستحقاق الشهري')
                             ->date('Y/m/d')
                             ->color(fn (Investor $record): string => $record->payout_due_date->isPast() && $record->status === InvestorStatus::Active ? 'danger' : 'gray'),
+                        Infolists\Components\TextEntry::make('total_payout_date')
+                            ->label('تاريخ التسديد الكلي')
+                            ->date('Y/m/d')
+                            ->placeholder('-'),
                         Infolists\Components\TextEntry::make('status')
                             ->label(__('Status'))
                             ->badge()
                             ->formatStateUsing(fn (InvestorStatus $state): string => $state->label())
                             ->color(fn (InvestorStatus $state): string => $state->color()),
-                    ])->columns(3),
+                    ])->columns(4),
 
                 Infolists\Components\Section::make(__('Notes'))
                     ->icon('heroicon-o-document-text')

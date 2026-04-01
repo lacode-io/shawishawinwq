@@ -110,6 +110,11 @@ class Customer extends Model
 
     public function getNextDueDateAttribute(): ?Carbon
     {
+        // لا يوجد تسديد
+        if ($this->payment_type === PaymentType::NoPayment) {
+            return null;
+        }
+
         // دفعة واحدة: تاريخ التسليم + عدد الأيام
         if ($this->payment_type === PaymentType::LumpSum) {
             if ($this->payments()->exists()) {
@@ -117,6 +122,17 @@ class Customer extends Model
             }
 
             return $this->delivery_date->copy()->addDays($this->lump_sum_days ?? 0);
+        }
+
+        // تسديد حسب مدة: تاريخ التسليم + (عدد الأيام × عدد الدفعات + 1)
+        if ($this->payment_type === PaymentType::DurationBased) {
+            $paidCount = $this->payments()->count();
+
+            if ($paidCount >= $this->duration_months) {
+                return null;
+            }
+
+            return $this->delivery_date->copy()->addDays(($this->lump_sum_days ?? 30) * ($paidCount + 1));
         }
 
         // أقساط شهرية
@@ -135,6 +151,10 @@ class Customer extends Model
             return false;
         }
 
+        if ($this->payment_type === PaymentType::NoPayment) {
+            return false;
+        }
+
         $nextDue = $this->next_due_date;
 
         return $nextDue !== null && $nextDue->isPast();
@@ -147,6 +167,16 @@ class Customer extends Model
         }
 
         return (int) $this->next_due_date->diffInMonths(now());
+    }
+
+    public function getIsDefaulterAttribute(): bool
+    {
+        return $this->months_late >= 3;
+    }
+
+    public function getProfitAttribute(): int
+    {
+        return $this->product_sale_total - ($this->product_cost_price ?? 0);
     }
 
     public function getPaidInstallmentsCountAttribute(): int

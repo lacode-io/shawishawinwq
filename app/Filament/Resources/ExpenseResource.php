@@ -56,6 +56,12 @@ class ExpenseResource extends Resource
                             ->required()
                             ->live(),
 
+                        Forms\Components\TextInput::make('custom_type_name')
+                            ->label('اسم المصروف المخصص')
+                            ->required()
+                            ->maxLength(255)
+                            ->visible(fn (Forms\Get $get): bool => $get('type') === ExpenseType::Custom->value),
+
                         Forms\Components\Select::make('sub_type')
                             ->label(__('Sub Type'))
                             ->options(collect(ExpenseSubType::cases())->mapWithKeys(fn ($t) => [$t->value => $t->label()]))
@@ -99,7 +105,9 @@ class ExpenseResource extends Resource
                 Tables\Columns\TextColumn::make('type')
                     ->label(__('Expense Type'))
                     ->badge()
-                    ->formatStateUsing(fn (ExpenseType $state): string => $state->label())
+                    ->formatStateUsing(fn (ExpenseType $state, Expense $record): string => $state === ExpenseType::Custom && $record->custom_type_name
+                        ? $record->custom_type_name
+                        : $state->label())
                     ->color(fn (ExpenseType $state): string => $state->color())
                     ->sortable(),
 

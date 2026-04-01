@@ -207,7 +207,7 @@
                 </div>
             </div>
 
-            {{-- معاينة تصفية الشهر الحالي --}}
+            {{-- معاينة تصفية الشهر --}}
             @php $preview = $cr['preview']; @endphp
             <div class="rounded-xl border border-gray-200 bg-gray-50 p-5 mb-5 dark:border-gray-700 dark:bg-gray-800">
                 <div class="flex items-center justify-between mb-3">
@@ -215,12 +215,30 @@
                         تغطية المستثمرين - شهر {{ $preview['month'] }}/{{ $preview['year'] }}
                         <span class="text-xs text-gray-400">({{ $preview['customers_count'] }} زبون)</span>
                     </h3>
+                    <div class="flex items-center gap-2">
+                        <select wire:model.live="settlementMonth"
+                            class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                            @foreach(range(1, 12) as $m)
+                                <option value="{{ $m }}">{{ \Carbon\Carbon::create()->month($m)->translatedFormat('F') }}</option>
+                            @endforeach
+                        </select>
+                        <select wire:model.live="settlementYear"
+                            class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                            @foreach(range(now()->year, 2024, -1) as $y)
+                                <option value="{{ $y }}">{{ $y }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between mb-3">
+                    <div></div>
                     @if($preview['already_settled'])
                         <span class="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700 dark:bg-green-900/40 dark:text-green-400">
                             <x-heroicon-o-check-circle class="h-3.5 w-3.5" />
                             تمت التصفية
                         </span>
                     @endif
+                    </div>
                 </div>
 
                 <div class="flex flex-wrap items-center justify-center gap-3 text-center text-sm mb-4">
@@ -328,8 +346,7 @@
                 </a>
             </div>
 
-            @if($personal['yearly_target'] > 0)
-                {{-- بطاقات التاركت --}}
+            {{-- بطاقات التاركت --}}
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 mb-6">
                     {{-- التاركت السنوي --}}
                     <div class="rounded-xl border-2 border-purple-300 bg-purple-50 p-5 dark:border-purple-700 dark:bg-purple-900/20">
@@ -340,6 +357,24 @@
 
                         <div class="text-center mb-4">
                             <div class="text-3xl font-bold text-purple-600 dark:text-purple-400">{{ $iqd($personal['yearly_target']) }}</div>
+                        </div>
+
+                        {{-- تفصيل التاركت السنوي --}}
+                        <div class="rounded-lg bg-white p-3 dark:bg-gray-900 mb-4">
+                            <div class="space-y-2 text-xs">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-500 dark:text-gray-400">مستحقات المستثمرين (12 شهر):</span>
+                                    <span class="font-bold text-orange-600 dark:text-orange-400">{{ $iqd($personal['yearly_investor_dues'] ?? 0) }}</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-500 dark:text-gray-400">الرواتب المدفوعة هذه السنة:</span>
+                                    <span class="font-bold text-red-600 dark:text-red-400">{{ $iqd($personal['yearly_salaries'] ?? 0) }}</span>
+                                </div>
+                                <div class="border-t border-gray-200 dark:border-gray-700 pt-2 flex items-center justify-between">
+                                    <span class="font-bold text-gray-700 dark:text-gray-300">المجموع:</span>
+                                    <span class="font-bold text-purple-600 dark:text-purple-400">{{ $iqd($personal['yearly_target']) }}</span>
+                                </div>
+                            </div>
                         </div>
 
                         {{-- رصيد القاصة / التاركت --}}
@@ -385,7 +420,24 @@
 
                         <div class="text-center mb-4">
                             <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ $iqd($personal['monthly_target']) }}</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">التاركت السنوي ÷ 12</div>
+                        </div>
+
+                        {{-- تفصيل التاركت الشهري --}}
+                        <div class="rounded-lg bg-white p-3 dark:bg-gray-900 mb-4">
+                            <div class="space-y-2 text-xs">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-500 dark:text-gray-400">مستحقات المستثمرين الشهرية:</span>
+                                    <span class="font-bold text-orange-600 dark:text-orange-400">{{ $iqd($personal['monthly_investor_dues'] ?? 0) }}</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-500 dark:text-gray-400">رواتب هذا الشهر:</span>
+                                    <span class="font-bold text-red-600 dark:text-red-400">{{ $iqd($personal['monthly_salaries'] ?? 0) }}</span>
+                                </div>
+                                <div class="border-t border-gray-200 dark:border-gray-700 pt-2 flex items-center justify-between">
+                                    <span class="font-bold text-gray-700 dark:text-gray-300">المجموع:</span>
+                                    <span class="font-bold text-blue-600 dark:text-blue-400">{{ $iqd($personal['monthly_target']) }}</span>
+                                </div>
+                            </div>
                         </div>
 
                         {{-- رصيد القاصة / التاركت الشهري --}}
@@ -422,17 +474,6 @@
                         </div>
                     </div>
                 </div>
-            @else
-                <div class="rounded-lg border border-yellow-200 bg-yellow-50 p-6 text-center dark:border-yellow-800 dark:bg-yellow-900/20">
-                    <x-heroicon-o-exclamation-triangle class="mx-auto h-10 w-10 text-yellow-500" />
-                    <p class="mt-2 text-sm font-medium text-yellow-700 dark:text-yellow-400">لم يتم تحديد التاركت السنوي بعد</p>
-                    <a href="{{ \App\Filament\Pages\ManageSettings::getUrl() }}"
-                       class="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-yellow-100 px-4 py-2 text-sm font-medium text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-900/40 dark:text-yellow-300 dark:hover:bg-yellow-900/60">
-                        <x-heroicon-o-cog-6-tooth class="h-4 w-4" />
-                        تحديد التاركت من الإعدادات
-                    </a>
-                </div>
-            @endif
         </div>
     </div>
 </x-filament-panels::page>

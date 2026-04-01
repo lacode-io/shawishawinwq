@@ -52,14 +52,16 @@ class FinanceService
     public function cashCapital(): int
     {
         return Cache::remember('finance.cash_capital', self::CACHE_TTL, function () {
-            $manualCapital = (int) Setting::instance()->cash_capital;
+            $settings = Setting::instance();
+            $manualCapital = (int) $settings->cash_capital;
+            $extraCapital = (int) $settings->extra_capital;
             $totalPaymentsIn = (int) CustomerPayment::sum('amount');
             $totalExpenses = (int) Expense::sum('amount');
             $totalInvestorPayouts = (int) InvestorPayout::sum('amount');
             $totalCostPrice = (int) Customer::whereNotNull('product_cost_price')->sum('product_cost_price');
             $totalInvestments = (int) Investor::sum('amount_invested');
 
-            return $manualCapital + $totalPaymentsIn + $totalInvestments - $totalExpenses - $totalInvestorPayouts - $totalCostPrice;
+            return $manualCapital + $extraCapital + $totalPaymentsIn + $totalInvestments - $totalExpenses - $totalInvestorPayouts - $totalCostPrice;
         });
     }
 
@@ -573,13 +575,36 @@ class FinanceService
 
     /**
      * بيانات التاركت الشخصي (السنوي والشهري)
-     * التاركت = الفائض بعد المصاريف والمستثمرين
+     * التاركت الشهري = مستحقات المستثمرين الشهرية + رواتب الشهر الحالي
+     * التاركت السنوي = مستحقات المستثمرين لـ 12 شهر + الرواتب المدفوعة هذه السنة
      */
     public function personalTarget(): array
     {
         $settings = Setting::instance();
-        $yearlyTarget = (int) $settings->yearly_target_amount;
-        $monthlyTarget = $yearlyTarget > 0 ? (int) ceil($yearlyTarget / 12) : 0;
+
+        // مستحقات المستثمرين الشهرية
+        $monthlyInvestorDues = (int) Investor::where('status', InvestorStatus::Active)
+            ->sum('monthly_target_amount');
+
+        // مستحقات المستثمرين السنوية (12 شهر من كل مستثمر بغض النظر عن مدة الاستثمار)
+        $yearlyInvestorDues = $monthlyInvestorDues * 12;
+
+        // رواتب الشهر الحالي
+        $monthlySalaries = (int) Expense::where('type', ExpenseType::Salary)
+            ->whereMonth('spent_at', now()->month)
+            ->whereYear('spent_at', now()->year)
+            ->sum('amount');
+
+        // الرواتب المدفوعة هذه السنة
+        $yearlySalaries = (int) Expense::where('type', ExpenseType::Salary)
+            ->whereYear('spent_at', now()->year)
+            ->sum('amount');
+
+        // التاركت الشهري = مستحقات المستثمرين + رواتب الشهر
+        $monthlyTarget = $monthlyInvestorDues + $monthlySalaries;
+
+        // التاركت السنوي = مستحقات المستثمرين (12 شهر) + الرواتب المدفوعة هذه السنة
+        $yearlyTarget = $yearlyInvestorDues + $yearlySalaries;
 
         // رصيد القاصة هو مقياس الإنجاز
         $balance = (int) $settings->cash_register_balance;
@@ -590,6 +615,10 @@ class FinanceService
         return [
             'yearly_target' => $yearlyTarget,
             'monthly_target' => $monthlyTarget,
+            'monthly_investor_dues' => $monthlyInvestorDues,
+            'yearly_investor_dues' => $yearlyInvestorDues,
+            'monthly_salaries' => $monthlySalaries,
+            'yearly_salaries' => $yearlySalaries,
             'balance' => $balance,
             'yearly_progress' => min($yearlyProgress, 100),
             'monthly_progress' => min($monthlyProgress, 100),

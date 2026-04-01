@@ -76,6 +76,7 @@ class FinanceDashboard extends Page implements HasForms
 
             // ── تفاصيل رأس المال الكاش ──
             'manual_cash_capital' => (int) Setting::instance()->cash_capital,
+            'extra_capital' => (int) Setting::instance()->extra_capital,
             'total_payments_in' => (int) CustomerPayment::sum('amount'),
             'monthly_payments_in' => (int) CustomerPayment::whereMonth('paid_at', $this->paymentsMonth)->whereYear('paid_at', $this->paymentsYear)->sum('amount'),
             'total_investments' => (int) Investor::sum('amount_invested'),

@@ -92,6 +92,13 @@ class ManageSettings extends Page implements HasForms
                             ->default(0)
                             ->suffix('د.ع'),
 
+                        Forms\Components\TextInput::make('extra_capital')
+                            ->label('مبلغ إضافي على رأس المال الكاش')
+                            ->helperText('رقم يُضاف على رأس المال الكاش ويظهر في اللوحة المالية')
+                            ->numeric()
+                            ->default(0)
+                            ->suffix('د.ع'),
+
                         Forms\Components\TextInput::make('yearly_target_amount')
                             ->label('التاركت السنوي')
                             ->helperText('المبلغ المستهدف سنوياً (الفائض بعد المصاريف والمستثمرين)')
@@ -99,7 +106,7 @@ class ManageSettings extends Page implements HasForms
                             ->numeric()
                             ->default(0)
                             ->suffix('د.ع'),
-                    ])->columns(2),
+                    ])->columns(3),
 
                 Forms\Components\Section::make(__('Colors'))
                     ->schema([
@@ -202,6 +209,7 @@ class ManageSettings extends Page implements HasForms
             'primary_color' => $data['primary_color'],
             'secondary_color' => $data['secondary_color'],
             'cash_capital' => $newCashCapital,
+            'extra_capital' => (int) ($data['extra_capital'] ?? 0),
             'yearly_target_amount' => (int) ($data['yearly_target_amount'] ?? 0),
             'whatsapp_provider_config' => $whatsappConfig,
         ]);

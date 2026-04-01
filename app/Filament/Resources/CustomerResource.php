@@ -68,6 +68,41 @@ class CustomerResource extends Resource
     {
         return $form
             ->schema([
+                // ── اختيار زبون موجود ──
+                Forms\Components\Section::make('استيراد بيانات زبون سابق')
+                    ->icon('heroicon-o-arrow-path')
+                    ->schema([
+                        Forms\Components\Select::make('existing_customer')
+                            ->label('اختيار زبون موجود')
+                            ->helperText('اختر زبون سابق لنسخ بياناته الشخصية')
+                            ->searchable()
+                            ->getSearchResultsUsing(function (string $search): array {
+                                return Customer::where('full_name', 'like', "%{$search}%")
+                                    ->orWhere('phone', 'like', "%{$search}%")
+                                    ->limit(20)
+                                    ->get()
+                                    ->mapWithKeys(fn (Customer $c) => [$c->id => "{$c->full_name} - {$c->phone}"])
+                                    ->all();
+                            })
+                            ->live()
+                            ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                if ($state) {
+                                    $customer = Customer::find($state);
+                                    if ($customer) {
+                                        $set('full_name', $customer->full_name);
+                                        $set('phone', $customer->phone);
+                                        $set('address', $customer->address);
+                                        $set('guarantor_name', $customer->guarantor_name);
+                                        $set('guarantor_phone', $customer->guarantor_phone);
+                                    }
+                                }
+                            })
+                            ->dehydrated(false),
+                    ])
+                    ->collapsible()
+                    ->collapsed()
+                    ->visibleOn('create'),
+
                 // ── معلومات الزبون ──
                 Forms\Components\Section::make(__('Customer'))
                     ->icon('heroicon-o-user')
@@ -174,7 +209,7 @@ class CustomerResource extends Resource
                             ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set) {
                                 self::calculateInstallment($get, $set);
                             })
-                            ->visible(fn (Forms\Get $get): bool => $get('payment_type') !== PaymentType::LumpSum->value),
+                            ->visible(fn (Forms\Get $get): bool => in_array($get('payment_type'), [PaymentType::Installment->value, PaymentType::DurationBased->value])),
 
                         Forms\Components\TextInput::make('monthly_installment_amount')
                             ->label(__('Monthly Installment'))
@@ -183,16 +218,20 @@ class CustomerResource extends Resource
                             ->mask(\Filament\Support\RawJs::make('$money($input, \',\', \'.\')'))
                             ->stripCharacters(['.', ','])
                             ->suffix(__('IQD'))
-                            ->visible(fn (Forms\Get $get): bool => $get('payment_type') !== PaymentType::LumpSum->value),
+                            ->visible(fn (Forms\Get $get): bool => in_array($get('payment_type'), [PaymentType::Installment->value, PaymentType::DurationBased->value])),
 
-                        // ── حقول الدفعة الواحدة ──
+                        // ── حقول المدة بالأيام (دفعة واحدة أو تسديد حسب مدة) ──
                         Forms\Components\TextInput::make('lump_sum_days')
-                            ->label('المدة بالأيام')
+                            ->label(fn (Forms\Get $get): string => $get('payment_type') === PaymentType::DurationBased->value
+                                ? 'الفترة بالأيام بين كل دفعة'
+                                : 'المدة بالأيام')
                             ->required()
                             ->numeric()
                             ->minValue(1)
-                            ->helperText('عدد الأيام من تاريخ التسليم لاستحقاق الدفعة')
-                            ->visible(fn (Forms\Get $get): bool => $get('payment_type') === PaymentType::LumpSum->value),
+                            ->helperText(fn (Forms\Get $get): string => $get('payment_type') === PaymentType::DurationBased->value
+                                ? 'عدد الأيام بين كل دفعة واخرى'
+                                : 'عدد الأيام من تاريخ التسليم لاستحقاق الدفعة')
+                            ->visible(fn (Forms\Get $get): bool => in_array($get('payment_type'), [PaymentType::LumpSum->value, PaymentType::DurationBased->value])),
 
                         Forms\Components\Select::make('status')
                             ->label(__('Status'))
@@ -283,6 +322,31 @@ class CustomerResource extends Resource
                     ->formatStateUsing(fn (int $state): string => Number::iqd($state))
                     ->color(fn (Customer $record): string => $record->remaining_balance > 0 ? 'danger' : 'success'),
 
+                Tables\Columns\TextColumn::make('profit')
+                    ->label('الربح')
+                    ->formatStateUsing(fn (int $state): string => Number::iqd($state))
+                    ->color(fn (int $state): string => $state > 0 ? 'success' : 'danger')
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->orderByRaw('(CAST(product_sale_total AS SIGNED) - CAST(COALESCE(product_cost_price, 0) AS SIGNED)) ' . $direction);
+                    })
+                    ->toggleable(),
+
+                Tables\Columns\IconColumn::make('is_defaulter')
+                    ->label('متلكئ')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-exclamation-triangle')
+                    ->falseIcon('heroicon-o-check-circle')
+                    ->trueColor('danger')
+                    ->falseColor('success')
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->orderByRaw('
+                            CASE WHEN TIMESTAMPDIFF(MONTH,
+                                DATE_ADD(delivery_date, INTERVAL (SELECT COUNT(*) FROM customer_payments WHERE customer_payments.customer_id = customers.id) + 1 MONTH),
+                                NOW()
+                            ) >= 3 THEN 1 ELSE 0 END ' . $direction);
+                    })
+                    ->toggleable(),
+
                 Tables\Columns\TextColumn::make('next_due_date')
                     ->label(__('Payout Due Date'))
                     ->date('Y/m/d')
@@ -318,7 +382,7 @@ class CustomerResource extends Resource
                     ->label(__('Delivery Date'))
                     ->date('Y/m/d')
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label(__('Created At'))
@@ -337,6 +401,16 @@ class CustomerResource extends Resource
                     ->label('متأخرين')
                     ->toggle()
                     ->query(fn (Builder $query): Builder => $query->late()),
+
+                Tables\Filters\Filter::make('defaulter')
+                    ->label('متلكئين (3 أشهر+)')
+                    ->toggle()
+                    ->query(fn (Builder $query): Builder => $query->where('status', CustomerStatus::Active)
+                        ->where(function (Builder $q) {
+                            $q->where(fn ($q) => $q->whereNull('payment_type')->orWhere('payment_type', PaymentType::Installment))
+                                ->whereRaw('TIMESTAMPDIFF(MONTH, DATE_ADD(delivery_date, INTERVAL (SELECT COUNT(*) FROM customer_payments WHERE customer_payments.customer_id = customers.id) + 1 MONTH), NOW()) >= 3');
+                        })
+                    ),
 
                 Tables\Filters\TernaryFilter::make('is_platform')
                     ->label('نوع الزبون')
@@ -410,6 +484,7 @@ class CustomerResource extends Resource
                                 ->send();
                         })
                         ->visible(fn (Customer $record): bool => $record->status === CustomerStatus::Active
+                            && $record->payment_type !== PaymentType::NoPayment
                             && auth()->user()->can('create', CustomerPayment::class)),
 
                     Tables\Actions\Action::make('mark_completed')
@@ -548,17 +623,17 @@ class CustomerResource extends Resource
                             ->date('Y/m/d')
                             ->placeholder('-'),
                         Infolists\Components\TextEntry::make('lump_sum_days')
-                            ->label('المدة بالأيام')
+                            ->label(fn (Customer $record): string => $record->payment_type === PaymentType::DurationBased ? 'الفترة بين الدفعات' : 'المدة بالأيام')
                             ->suffix(' يوم')
-                            ->visible(fn (Customer $record): bool => $record->payment_type === PaymentType::LumpSum),
+                            ->visible(fn (Customer $record): bool => in_array($record->payment_type, [PaymentType::LumpSum, PaymentType::DurationBased])),
                         Infolists\Components\TextEntry::make('duration_months')
                             ->label(__('Duration (Months)'))
                             ->suffix(' شهر')
-                            ->visible(fn (Customer $record): bool => $record->payment_type !== PaymentType::LumpSum),
+                            ->visible(fn (Customer $record): bool => in_array($record->payment_type, [PaymentType::Installment, PaymentType::DurationBased])),
                         Infolists\Components\TextEntry::make('monthly_installment_amount')
                             ->label(__('Monthly Installment'))
                             ->formatStateUsing(fn (int $state): string => Number::iqd($state))
-                            ->visible(fn (Customer $record): bool => $record->payment_type !== PaymentType::LumpSum),
+                            ->visible(fn (Customer $record): bool => in_array($record->payment_type, [PaymentType::Installment, PaymentType::DurationBased])),
                         Infolists\Components\TextEntry::make('total_paid')
                             ->label(__('Total Paid'))
                             ->formatStateUsing(fn (int $state): string => Number::iqd($state))
@@ -570,7 +645,7 @@ class CustomerResource extends Resource
                         Infolists\Components\TextEntry::make('paid_installments_count')
                             ->label('الأقساط المدفوعة')
                             ->formatStateUsing(fn (int $state, Customer $record): string => "{$state} / {$record->duration_months}")
-                            ->visible(fn (Customer $record): bool => $record->payment_type !== PaymentType::LumpSum),
+                            ->visible(fn (Customer $record): bool => in_array($record->payment_type, [PaymentType::Installment, PaymentType::DurationBased])),
                         Infolists\Components\TextEntry::make('status')
                             ->label(__('Status'))
                             ->badge()

@@ -12,6 +12,7 @@ class Setting extends Model
         'primary_color',
         'secondary_color',
         'cash_capital',
+        'extra_capital',
         'yearly_target_amount',
         'cash_register_balance',
         'whatsapp_provider_config',
@@ -21,6 +22,7 @@ class Setting extends Model
     {
         return [
             'cash_capital' => 'integer',
+            'extra_capital' => 'integer',
             'yearly_target_amount' => 'integer',
             'cash_register_balance' => 'integer',
             'whatsapp_provider_config' => 'array',

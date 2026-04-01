@@ -164,6 +164,13 @@
                 <div class="text-xs text-gray-500 dark:text-gray-400">المبلغ المدخل</div>
                 <div class="text-lg font-bold text-gray-700 dark:text-gray-300">{{ $iqd($stats['manual_cash_capital']) }}</div>
             </div>
+            @if($stats['extra_capital'] > 0)
+            <span class="text-2xl font-bold text-green-500">+</span>
+            <div class="rounded-lg bg-green-50 px-4 py-3 dark:bg-green-900/20">
+                <div class="text-xs text-gray-500 dark:text-gray-400">مبلغ إضافي</div>
+                <div class="text-lg font-bold text-green-600 dark:text-green-400">{{ $iqd($stats['extra_capital']) }}</div>
+            </div>
+            @endif
             <span class="text-2xl font-bold text-green-500">+</span>
             <div class="rounded-lg bg-green-50 px-4 py-3 dark:bg-green-900/20">
                 <div class="text-xs text-gray-500 dark:text-gray-400">تسديدات الزبائن</div>
@@ -220,6 +227,16 @@
                             <span class="text-xs font-bold text-green-600 dark:text-green-400">{{ $iqd($stats['manual_cash_capital']) }}</span>
                         </div>
                     </div>
+
+                    {{-- المبلغ الإضافي --}}
+                    @if($stats['extra_capital'] > 0)
+                    <div class="rounded-lg border border-gray-100 dark:border-gray-800 mb-2 overflow-hidden">
+                        <div class="flex items-center justify-between bg-gray-50 px-3 py-2 dark:bg-gray-800">
+                            <span class="text-xs font-semibold text-gray-600 dark:text-gray-400"><x-heroicon-o-plus-circle class="inline h-3.5 w-3.5" /> مبلغ إضافي على رأس المال</span>
+                            <span class="text-xs font-bold text-green-600 dark:text-green-400">{{ $iqd($stats['extra_capital']) }}</span>
+                        </div>
+                    </div>
+                    @endif
 
                     {{-- تسديدات الزبائن --}}
                     <div class="rounded-lg border border-gray-100 dark:border-gray-800 mb-2 overflow-hidden">

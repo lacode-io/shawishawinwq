@@ -143,14 +143,14 @@
         <tr>
             <td class="label">نوع المنتج:</td>
             <td class="value">{{ $customer->product_type }}</td>
-            <td class="label">رأس المال:</td>
-            <td class="value">{{ $customer->product_cost_price ? \Illuminate\Support\Number::iqd($customer->product_cost_price) : '-' }}</td>
-        </tr>
-        <tr>
             <td class="label">السعر الإجمالي:</td>
             <td class="value">{{ \Illuminate\Support\Number::iqd($customer->product_sale_total) }}</td>
+        </tr>
+        <tr>
             <td class="label">تاريخ التسليم:</td>
             <td class="value">{{ $customer->delivery_date->format('Y/m/d') }}</td>
+            <td class="label"></td>
+            <td class="value"></td>
         </tr>
         <tr>
             <td class="label">المدة:</td>
