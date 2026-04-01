@@ -677,15 +677,11 @@ class FinanceService
      */
     public function settleMonth(int $month, int $year): array
     {
-        // تحقق إن الشهر ما تمت تصفيته سابقاً
-        $alreadySettled = CashRegisterTransaction::where('month', $month)
+        // عدد التصفيات السابقة لهذا الشهر
+        $settleCount = CashRegisterTransaction::where('month', $month)
             ->where('year', $year)
-            ->whereIn('description', ['تصفية حسابات شهرية - فائض', 'تصفية حسابات شهرية - عجز'])
-            ->exists();
-
-        if ($alreadySettled) {
-            return ['success' => false, 'message' => 'تمت تصفية هذا الشهر مسبقاً'];
-        }
+            ->where('description', 'like', 'تصفية حسابات شهرية%')
+            ->count();
 
         // أرباح الشهر من الزبائن (فرق سعر البيع - الشراء)
         $monthlyProfit = (int) Customer::whereNotNull('product_cost_price')
@@ -700,7 +696,11 @@ class FinanceService
 
         $difference = $monthlyProfit - $monthlyInvestorTarget;
 
-        return DB::transaction(function () use ($difference, $monthlyProfit, $monthlyInvestorTarget, $month, $year) {
+        $label = $settleCount > 0
+            ? ($difference >= 0 ? "تصفية حسابات شهرية - فائض (تحديث " . ($settleCount + 1) . ")" : "تصفية حسابات شهرية - عجز (تحديث " . ($settleCount + 1) . ")")
+            : ($difference >= 0 ? 'تصفية حسابات شهرية - فائض' : 'تصفية حسابات شهرية - عجز');
+
+        return DB::transaction(function () use ($difference, $monthlyProfit, $monthlyInvestorTarget, $month, $year, $label) {
             $settings = Setting::instance();
             $currentBalance = (int) $settings->cash_register_balance;
             $newBalance = $currentBalance + $difference;
@@ -713,7 +713,7 @@ class FinanceService
                 'type' => $difference >= 0 ? 'deposit' : 'withdrawal',
                 'amount' => abs($difference),
                 'balance_after' => $newBalance,
-                'description' => $difference >= 0 ? 'تصفية حسابات شهرية - فائض' : 'تصفية حسابات شهرية - عجز',
+                'description' => $label,
                 'month' => $month,
                 'year' => $year,
                 'settled_by' => auth()->id(),
@@ -754,10 +754,10 @@ class FinanceService
         $difference = $monthlyProfit - $monthlyInvestorTarget;
         $currentBalance = $this->cashRegisterBalance();
 
-        $alreadySettled = CashRegisterTransaction::where('month', $month)
+        $settleCount = CashRegisterTransaction::where('month', $month)
             ->where('year', $year)
-            ->whereIn('description', ['تصفية حسابات شهرية - فائض', 'تصفية حسابات شهرية - عجز'])
-            ->exists();
+            ->where('description', 'like', 'تصفية حسابات شهرية%')
+            ->count();
 
         // عدد الزبائن هذا الشهر
         $customersCount = Customer::whereNotNull('product_cost_price')
@@ -774,7 +774,7 @@ class FinanceService
             'is_surplus' => $difference >= 0,
             'current_balance' => $currentBalance,
             'projected_balance' => $currentBalance + $difference,
-            'already_settled' => $alreadySettled,
+            'settle_count' => $settleCount,
             'customers_count' => $customersCount,
         ];
     }

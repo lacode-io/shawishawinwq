@@ -230,14 +230,14 @@
                         </select>
                     </div>
                 </div>
+                @if($preview['settle_count'] > 0)
                 <div class="flex items-center justify-end mb-3">
-                    @if($preview['already_settled'])
-                        <span class="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700 dark:bg-green-900/40 dark:text-green-400">
-                            <x-heroicon-o-check-circle class="h-3.5 w-3.5" />
-                            تمت التصفية
-                        </span>
-                    @endif
+                    <span class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-400">
+                        <x-heroicon-o-check-circle class="h-3.5 w-3.5" />
+                        تمت التصفية {{ $preview['settle_count'] }} مرة
+                    </span>
                 </div>
+                @endif
 
                 <div class="flex flex-wrap items-center justify-center gap-3 text-center text-sm mb-4">
                     <div class="rounded-lg bg-white px-4 py-2 dark:bg-gray-900">
@@ -258,7 +258,6 @@
                     </div>
                 </div>
 
-                @if(!$preview['already_settled'])
                 <div class="rounded-lg bg-white p-3 dark:bg-gray-900">
                     <div class="flex items-center justify-between text-sm">
                         <span class="text-gray-500 dark:text-gray-400">رصيد القاصة بعد التصفية:</span>
@@ -267,7 +266,6 @@
                         </span>
                     </div>
                 </div>
-                @endif
             </div>
 
             {{-- سجل الحركات --}}

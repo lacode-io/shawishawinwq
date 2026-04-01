@@ -73,17 +73,15 @@ class TargetDashboard extends Page
                 ->modalDescription(function (): string {
                     $preview = app(FinanceService::class)->settlementPreview($this->settlementMonth, $this->settlementYear);
 
-                    if ($preview['already_settled']) {
-                        return 'تمت تصفية هذا الشهر مسبقاً!';
-                    }
-
                     $iqd = fn (int $v) => number_format($v, 0, '.', ',') . ' د.ع';
                     $type = $preview['is_surplus'] ? 'فائض' : 'عجز';
+                    $note = $preview['settle_count'] > 0 ? "\n⚠ تمت تصفية هذا الشهر {$preview['settle_count']} مرة سابقاً - ستُضاف تصفية جديدة" : '';
 
                     return "أرباح الشهر: {$iqd($preview['monthly_profit'])}\n"
                         . "تاركت المستثمرين: {$iqd($preview['monthly_investor_target'])}\n"
                         . "الفرق ({$type}): {$iqd(abs($preview['difference']))}\n"
-                        . "رصيد القاصة بعد التصفية: {$iqd($preview['projected_balance'])}";
+                        . "رصيد القاصة بعد التصفية: {$iqd($preview['projected_balance'])}"
+                        . $note;
                 })
                 ->modalSubmitActionLabel('تأكيد التصفية')
                 ->action(function (): void {
