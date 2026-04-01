@@ -637,7 +637,7 @@ class FinanceService
         $monthlyInvestorDues = (int) Investor::where('status', InvestorStatus::Active)
             ->sum('monthly_target_amount');
 
-        // مستحقات المستثمرين السنوية (12 شهر من كل مستثمر بغض النظر عن مدة الاستثمار)
+        // مستحقات المستثمرين السنوية (12 شهر)
         $yearlyInvestorDues = $monthlyInvestorDues * 12;
 
         // رواتب الشهر الحالي
@@ -651,17 +651,24 @@ class FinanceService
             ->whereYear('spent_at', now()->year)
             ->sum('amount');
 
-        // التاركت الشهري = التاركت الأساسي + مستحقات المستثمرين + رواتب الشهر
+        // التاركت الشهري = رواتب الشهر + مستحقات المستثمرين (+ التاركت الأساسي)
         $monthlyTarget = $settingsMonthlyTarget + $monthlyInvestorDues + $monthlySalaries;
 
-        // التاركت السنوي = التاركت الأساسي + مستحقات المستثمرين (12 شهر) + الرواتب المدفوعة هذه السنة
+        // التاركت السنوي = الرواتب المدفوعة + مستحقات المستثمرين 12 شهر (+ التاركت الأساسي)
         $yearlyTarget = $settingsYearlyTarget + $yearlyInvestorDues + $yearlySalaries;
 
-        // رصيد القاصة هو مقياس الإنجاز
-        $balance = (int) $settings->cash_register_balance;
+        // أرباح الزبائن لهذا الشهر (الإجمالي - رأس المال)
+        $monthlyCustomerProfit = $this->monthlyProfit(now()->month, now()->year);
 
+        // نسبة الإنجاز = أرباح الزبائن / التاركت الشهري
+        $monthlyProgress = $monthlyTarget > 0 ? round(($monthlyCustomerProfit / $monthlyTarget) * 100, 1) : 0;
+
+        // الفائض الشهري = أرباح الزبائن - التاركت الشهري
+        $monthlySurplus = $monthlyCustomerProfit - $monthlyTarget;
+
+        // رصيد القاصة
+        $balance = (int) $settings->cash_register_balance;
         $yearlyProgress = $yearlyTarget > 0 ? round((max(0, $balance) / $yearlyTarget) * 100, 1) : 0;
-        $monthlyProgress = $monthlyTarget > 0 ? round((max(0, $balance) / $monthlyTarget) * 100, 1) : 0;
 
         return [
             'yearly_target' => $yearlyTarget,
@@ -672,9 +679,11 @@ class FinanceService
             'yearly_investor_dues' => $yearlyInvestorDues,
             'monthly_salaries' => $monthlySalaries,
             'yearly_salaries' => $yearlySalaries,
+            'monthly_customer_profit' => $monthlyCustomerProfit,
+            'monthly_surplus' => $monthlySurplus,
             'balance' => $balance,
             'yearly_progress' => min($yearlyProgress, 100),
-            'monthly_progress' => min($monthlyProgress, 100),
+            'monthly_progress' => min(max($monthlyProgress, 0), 100),
         ];
     }
 

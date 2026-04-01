@@ -422,6 +422,7 @@
 
                         <div class="text-center mb-4">
                             <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ $iqd($personal['monthly_target']) }}</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">رواتب + مستحقات المستثمرين</div>
                         </div>
 
                         {{-- تفصيل التاركت الشهري --}}
@@ -442,23 +443,29 @@
                                     <span class="font-bold text-red-600 dark:text-red-400">{{ $iqd($personal['monthly_salaries'] ?? 0) }}</span>
                                 </div>
                                 <div class="border-t border-gray-200 dark:border-gray-700 pt-2 flex items-center justify-between">
-                                    <span class="font-bold text-gray-700 dark:text-gray-300">المجموع:</span>
+                                    <span class="font-bold text-gray-700 dark:text-gray-300">= التاركت:</span>
                                     <span class="font-bold text-blue-600 dark:text-blue-400">{{ $iqd($personal['monthly_target']) }}</span>
                                 </div>
                             </div>
                         </div>
 
-                        {{-- رصيد القاصة / التاركت الشهري --}}
+                        {{-- أرباح الزبائن مقابل التاركت --}}
                         <div class="rounded-lg bg-white p-3 dark:bg-gray-900 mb-4">
                             <div class="flex flex-wrap items-center justify-center gap-2 text-center text-xs">
-                                <div class="rounded {{ $personal['balance'] >= 0 ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-red-50 dark:bg-red-900/20' }} px-4 py-2">
-                                    <div class="text-[10px] text-gray-400">رصيد القاصة</div>
-                                    <div class="font-bold {{ $personal['balance'] >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400' }}">{{ $iqd($personal['balance']) }}</div>
+                                <div class="rounded bg-green-50 px-4 py-2 dark:bg-green-900/20">
+                                    <div class="text-[10px] text-gray-400">أرباح الزبائن</div>
+                                    <div class="font-bold text-green-600 dark:text-green-400">{{ $iqd($personal['monthly_customer_profit'] ?? 0) }}</div>
                                 </div>
-                                <span class="text-lg font-bold text-gray-400">من</span>
+                                <span class="text-lg font-bold text-gray-400">→</span>
                                 <div class="rounded bg-blue-50 px-4 py-2 dark:bg-blue-900/20">
-                                    <div class="text-[10px] text-gray-400">التاركت الشهري</div>
+                                    <div class="text-[10px] text-gray-400">التاركت</div>
                                     <div class="font-bold text-blue-600 dark:text-blue-400">{{ $iqd($personal['monthly_target']) }}</div>
+                                </div>
+                                <span class="text-lg font-bold text-gray-400">=</span>
+                                @php $surplus = $personal['monthly_surplus'] ?? 0; @endphp
+                                <div class="rounded {{ $surplus >= 0 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20' }} px-4 py-2">
+                                    <div class="text-[10px] text-gray-400">{{ $surplus >= 0 ? 'فائض يُضاف للقاصة' : 'عجز' }}</div>
+                                    <div class="font-bold {{ $surplus >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">{{ $iqd(abs($surplus)) }}</div>
                                 </div>
                             </div>
                         </div>
@@ -476,7 +483,7 @@
                                 <div class="h-4 rounded-full" style="width: {{ $monthlyPct }}%; min-width: {{ $monthlyPct > 0 ? '0.5rem' : '0' }}; background-color: {{ $personal['monthly_progress'] >= 75 ? '#22c55e' : ($personal['monthly_progress'] >= 40 ? '#eab308' : '#ef4444') }};"></div>
                             </div>
                             <div class="flex items-center justify-between mt-1">
-                                <span class="text-xs text-gray-400">{{ $iqd(max(0, $personal['balance'])) }}</span>
+                                <span class="text-xs text-gray-400">{{ $iqd($personal['monthly_customer_profit'] ?? 0) }}</span>
                                 <span class="text-xs text-gray-400">{{ $iqd($personal['monthly_target']) }}</span>
                             </div>
                         </div>
