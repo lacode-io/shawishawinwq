@@ -394,7 +394,7 @@
                         <div>
                             <div class="text-sm text-gray-500 dark:text-gray-400">الربح الشهري — {{ \Carbon\Carbon::create($this->profitYear, $this->profitMonth)->translatedFormat('F Y') }}</div>
                             <div class="text-2xl font-bold {{ $stats['monthly_profit'] >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">{{ $iqd($stats['monthly_profit']) }}</div>
-                            <div class="text-xs text-gray-400 dark:text-gray-500">الإجمالي − رأس المال (للزبائن الفعالين)</div>
+                            <div class="text-xs text-gray-400 dark:text-gray-500">الإجمالي − رأس المال | debug: month={{ $stats['profit_month_val'] }} year={{ $stats['profit_year_val'] }}</div>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">

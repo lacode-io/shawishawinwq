@@ -156,7 +156,9 @@ class FinanceDashboard extends Page implements HasForms
             'monthly_total_expenses' => $expenses['total'],
 
             // ── Monthly Profit (selected month) ──
-            'monthly_profit' => $finance->monthlyProfit((int) $this->profitMonth, (int) $this->profitYear),
+            'profit_month_val' => (int) $this->profitMonth,
+            'profit_year_val' => (int) $this->profitYear,
+            'monthly_profit' => $finance->monthlyProfit((int) ($this->profitMonth ?? now()->month), (int) ($this->profitYear ?? now()->year)),
 
             // ── Annual ──
             'annual_profit' => $finance->annualProfit(),
