@@ -40,16 +40,10 @@ class FinanceDashboard extends Page implements HasForms
 
     public ?int $paymentsYear = null;
 
-    public ?int $profitMonth = null;
-
-    public ?int $profitYear = null;
-
     public function mount(): void
     {
         $this->paymentsMonth = now()->month;
         $this->paymentsYear = now()->year;
-        $this->profitMonth = now()->month;
-        $this->profitYear = now()->year;
     }
 
     public static function getNavigationLabel(): string
@@ -155,10 +149,8 @@ class FinanceDashboard extends Page implements HasForms
             'monthly_personal_expenses' => $expenses['personal'],
             'monthly_total_expenses' => $expenses['total'],
 
-            // ── Monthly Profit (selected month) ──
-            'profit_month' => $this->profitMonth,
-            'profit_year' => $this->profitYear,
-            'monthly_profit' => $finance->monthlyProfit(\Carbon\Carbon::create($this->profitYear, $this->profitMonth)),
+            // ── Monthly Profit (current month) ──
+            'monthly_profit' => $finance->monthlyProfit(),
 
             // ── Annual ──
             'annual_profit' => $finance->annualProfit(),

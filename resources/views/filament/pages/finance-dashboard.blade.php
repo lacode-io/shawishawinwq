@@ -385,30 +385,14 @@
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {{-- الربح الشهري --}}
         <x-filament::section>
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="rounded-lg {{ $stats['monthly_profit'] >= 0 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20' }} p-2">
-                        <x-heroicon-o-calendar class="h-6 w-6 {{ $stats['monthly_profit'] >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}" />
-                    </div>
-                    <div>
-                        <div class="text-sm text-gray-500 dark:text-gray-400">الربح الشهري</div>
-                        <div class="text-2xl font-bold {{ $stats['monthly_profit'] >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">{{ $iqd($stats['monthly_profit']) }}</div>
-                        <div class="text-xs text-gray-400 dark:text-gray-500">الإجمالي − رأس المال</div>
-                    </div>
+            <div class="flex items-center gap-3">
+                <div class="rounded-lg {{ $stats['monthly_profit'] >= 0 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20' }} p-2">
+                    <x-heroicon-o-calendar class="h-6 w-6 {{ $stats['monthly_profit'] >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}" />
                 </div>
-                <div class="flex items-center gap-2">
-                    <select wire:model.live="profitMonth"
-                        class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                        @foreach(range(1, 12) as $m)
-                            <option value="{{ $m }}">{{ \Carbon\Carbon::create()->month($m)->translatedFormat('F') }}</option>
-                        @endforeach
-                    </select>
-                    <select wire:model.live="profitYear"
-                        class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                        @foreach(range(now()->year, 2024, -1) as $y)
-                            <option value="{{ $y }}">{{ $y }}</option>
-                        @endforeach
-                    </select>
+                <div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">الربح الشهري ({{ \Carbon\Carbon::now()->translatedFormat('F Y') }})</div>
+                    <div class="text-2xl font-bold {{ $stats['monthly_profit'] >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">{{ $iqd($stats['monthly_profit']) }}</div>
+                    <div class="text-xs text-gray-400 dark:text-gray-500">الإجمالي − رأس المال (للزبائن الفعالين)</div>
                 </div>
             </div>
         </x-filament::section>
@@ -422,7 +406,7 @@
                 <div>
                     <div class="text-sm text-gray-500 dark:text-gray-400">الربح السنوي ({{ now()->year }})</div>
                     <div class="text-2xl font-bold {{ $stats['annual_profit'] >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">{{ $iqd($stats['annual_profit']) }}</div>
-                    <div class="text-xs text-gray-400 dark:text-gray-500">مجموع (الإجمالي − رأس المال) لكل زبائن {{ now()->year }}</div>
+                    <div class="text-xs text-gray-400 dark:text-gray-500">مجموع الأرباح الموزعة لكل أشهر {{ now()->year }}</div>
                 </div>
             </div>
         </x-filament::section>
