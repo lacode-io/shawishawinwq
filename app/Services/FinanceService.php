@@ -174,10 +174,9 @@ class FinanceService
     {
         $month ??= now();
 
-        return (int) Customer::whereNotNull('product_cost_price')
-            ->whereMonth('delivery_date', $month->month)
+        return (int) Customer::whereMonth('delivery_date', $month->month)
             ->whereYear('delivery_date', $month->year)
-            ->selectRaw('SUM(CAST(product_sale_total AS SIGNED) - CAST(product_cost_price AS SIGNED)) as profit')
+            ->selectRaw('SUM(CAST(product_sale_total AS SIGNED) - CAST(COALESCE(product_cost_price, 0) AS SIGNED)) as profit')
             ->value('profit') ?? 0;
     }
 
@@ -272,9 +271,8 @@ class FinanceService
     {
         $year ??= now()->year;
 
-        return (int) Customer::whereNotNull('product_cost_price')
-            ->whereYear('delivery_date', $year)
-            ->selectRaw('SUM(CAST(product_sale_total AS SIGNED) - CAST(product_cost_price AS SIGNED)) as profit')
+        return (int) Customer::whereYear('delivery_date', $year)
+            ->selectRaw('SUM(CAST(product_sale_total AS SIGNED) - CAST(COALESCE(product_cost_price, 0) AS SIGNED)) as profit')
             ->value('profit') ?? 0;
     }
 
