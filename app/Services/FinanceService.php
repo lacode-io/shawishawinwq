@@ -780,6 +780,122 @@ class FinanceService
     }
 
     /**
+     * تصفية كاملة - كل الأشهر الي فيها فرق غير مصفى
+     * يحسب لكل شهر: الربح المتوقع - تاركت المستثمرين - المبلغ المصفى سابقاً = الفرق المتبقي
+     * اذا الفرق != 0 يصفيه
+     */
+    public function settleAll(): array
+    {
+        $preview = $this->settleAllPreview();
+
+        // فقط الأشهر الي عندها فرق متبقي
+        $monthsToSettle = collect($preview['details'])->filter(fn ($d) => $d['remaining'] != 0);
+
+        if ($monthsToSettle->isEmpty()) {
+            return ['success' => false, 'message' => 'لا توجد أشهر تحتاج تصفية - كل الحسابات مصفاة', 'count' => 0];
+        }
+
+        $settledCount = 0;
+        $totalDifference = 0;
+
+        return DB::transaction(function () use ($monthsToSettle, &$settledCount, &$totalDifference) {
+            $settings = Setting::instance();
+            $currentBalance = (int) $settings->cash_register_balance;
+
+            foreach ($monthsToSettle as $d) {
+                $remaining = $d['remaining'];
+                $currentBalance += $remaining;
+
+                CashRegisterTransaction::create([
+                    'type' => $remaining >= 0 ? 'deposit' : 'withdrawal',
+                    'amount' => abs($remaining),
+                    'balance_after' => $currentBalance,
+                    'description' => $remaining >= 0
+                        ? 'تصفية حسابات شهرية - فائض' . ($d['already_settled'] != 0 ? ' (تحديث)' : '')
+                        : 'تصفية حسابات شهرية - عجز' . ($d['already_settled'] != 0 ? ' (تحديث)' : ''),
+                    'month' => $d['month'],
+                    'year' => $d['year'],
+                    'settled_by' => auth()->id(),
+                ]);
+
+                $settledCount++;
+                $totalDifference += $remaining;
+            }
+
+            $settings->update(['cash_register_balance' => $currentBalance]);
+            $this->flush();
+
+            return [
+                'success' => true,
+                'count' => $settledCount,
+                'total_difference' => $totalDifference,
+                'message' => "تمت تصفية {$settledCount} شهر بنجاح",
+            ];
+        });
+    }
+
+    /**
+     * معاينة التصفية الكاملة
+     * لكل شهر: الربح - تاركت المستثمرين = المتوقع، المتوقع - المصفى سابقاً = المتبقي
+     */
+    public function settleAllPreview(): array
+    {
+        // كل الأشهر الي فيها زبائن
+        $customerMonths = Customer::whereNotNull('product_cost_price')
+            ->selectRaw('MONTH(delivery_date) as m, YEAR(delivery_date) as y')
+            ->groupByRaw('YEAR(delivery_date), MONTH(delivery_date)')
+            ->get()
+            ->map(fn ($r) => ['month' => (int) $r->m, 'year' => (int) $r->y])
+            ->sortBy(fn ($item) => $item['year'] * 100 + $item['month'])
+            ->values();
+
+        $monthlyInvestorTarget = (int) Investor::where('status', InvestorStatus::Active)
+            ->sum('monthly_target_amount');
+
+        $details = $customerMonths->map(function ($item) use ($monthlyInvestorTarget) {
+            $profit = (int) Customer::whereNotNull('product_cost_price')
+                ->whereMonth('delivery_date', $item['month'])
+                ->whereYear('delivery_date', $item['year'])
+                ->selectRaw('SUM(CAST(product_sale_total AS SIGNED) - CAST(product_cost_price AS SIGNED)) as profit')
+                ->value('profit') ?? 0;
+
+            $expectedSettlement = $profit - $monthlyInvestorTarget;
+
+            // المبلغ المصفى سابقاً لهذا الشهر (مجموع الحركات: إيداع = موجب، سحب = سالب)
+            $alreadySettled = (int) CashRegisterTransaction::where('month', $item['month'])
+                ->where('year', $item['year'])
+                ->where('description', 'like', 'تصفية حسابات شهرية%')
+                ->selectRaw("SUM(CASE WHEN type = 'deposit' THEN amount ELSE -amount END) as net")
+                ->value('net') ?? 0;
+
+            $remaining = $expectedSettlement - $alreadySettled;
+
+            return [
+                'month' => $item['month'],
+                'year' => $item['year'],
+                'profit' => $profit,
+                'investor_target' => $monthlyInvestorTarget,
+                'expected' => $expectedSettlement,
+                'already_settled' => $alreadySettled,
+                'remaining' => $remaining,
+            ];
+        })->all();
+
+        $totalRemaining = collect($details)->sum('remaining');
+        $pendingCount = collect($details)->filter(fn ($d) => $d['remaining'] != 0)->count();
+        $currentBalance = $this->cashRegisterBalance();
+
+        return [
+            'total_months' => count($details),
+            'pending_count' => $pendingCount,
+            'details' => $details,
+            'total_remaining' => $totalRemaining,
+            'current_balance' => $currentBalance,
+            'projected_balance' => $currentBalance + $totalRemaining,
+        ];
+    }
+
+    /**
      * Flush all finance caches
      */
     public function flush(): void
