@@ -68,26 +68,52 @@ class TargetDashboard extends Page
                 ->label('تصفية الحسابات')
                 ->icon('heroicon-o-calculator')
                 ->color('warning')
-                ->requiresConfirmation()
-                ->modalHeading(fn (): string => 'تصفية حسابات شهر ' . $this->settlementMonth . '/' . $this->settlementYear)
-                ->modalDescription(function (): string {
-                    $preview = app(FinanceService::class)->settlementPreview($this->settlementMonth, $this->settlementYear);
+                ->modalHeading('تصفية الحسابات')
+                ->modalWidth('md')
+                ->form([
+                    Forms\Components\Select::make('settle_month')
+                        ->label('الشهر')
+                        ->options(collect(range(1, 12))->mapWithKeys(fn ($m) => [$m => \Carbon\Carbon::create()->month($m)->translatedFormat('F')]))
+                        ->default(now()->month)
+                        ->required()
+                        ->live(),
 
-                    $iqd = fn (int $v) => number_format($v, 0, '.', ',') . ' د.ع';
-                    $type = $preview['is_surplus'] ? 'فائض' : 'عجز';
-                    $note = $preview['settle_count'] > 0 ? "\n⚠ تمت تصفية هذا الشهر {$preview['settle_count']} مرة سابقاً - ستُضاف تصفية جديدة" : '';
+                    Forms\Components\Select::make('settle_year')
+                        ->label('السنة')
+                        ->options(collect(range(now()->year, 2024, -1))->mapWithKeys(fn ($y) => [$y => $y]))
+                        ->default(now()->year)
+                        ->required()
+                        ->live(),
 
-                    return "أرباح الشهر: {$iqd($preview['monthly_profit'])}\n"
-                        . "تاركت المستثمرين: {$iqd($preview['monthly_investor_target'])}\n"
-                        . "الفرق ({$type}): {$iqd(abs($preview['difference']))}\n"
-                        . "رصيد القاصة بعد التصفية: {$iqd($preview['projected_balance'])}"
-                        . $note;
-                })
+                    Forms\Components\Placeholder::make('settlement_preview')
+                        ->label('معاينة التصفية')
+                        ->content(function (Forms\Get $get): string {
+                            $month = (int) ($get('settle_month') ?: now()->month);
+                            $year = (int) ($get('settle_year') ?: now()->year);
+                            $preview = app(FinanceService::class)->settlementPreview($month, $year);
+
+                            $iqd = fn (int $v) => number_format($v, 0, '.', ',') . ' د.ع';
+                            $type = $preview['is_surplus'] ? 'فائض' : 'عجز';
+
+                            $text = "أرباح الشهر: {$iqd($preview['monthly_profit'])}\n"
+                                . "تاركت المستثمرين: {$iqd($preview['monthly_investor_target'])}\n"
+                                . "الفرق ({$type}): {$iqd(abs($preview['difference']))}\n"
+                                . "رصيد القاصة الحالي: {$iqd($preview['current_balance'])}\n"
+                                . "رصيد القاصة بعد التصفية: {$iqd($preview['projected_balance'])}";
+
+                            if ($preview['settle_count'] > 0) {
+                                $text .= "\n\n⚠ تمت تصفية هذا الشهر {$preview['settle_count']} مرة سابقاً - ستُضاف تصفية جديدة";
+                            }
+
+                            return $text;
+                        })
+                        ->columnSpanFull(),
+                ])
                 ->modalSubmitActionLabel('تأكيد التصفية')
-                ->action(function (): void {
+                ->action(function (array $data): void {
                     $result = app(FinanceService::class)->settleMonth(
-                        $this->settlementMonth,
-                        $this->settlementYear
+                        (int) $data['settle_month'],
+                        (int) $data['settle_year']
                     );
 
                     if ($result['success']) {
