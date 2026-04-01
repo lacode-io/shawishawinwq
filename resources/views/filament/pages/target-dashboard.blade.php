@@ -360,6 +360,12 @@
                         {{-- تفصيل التاركت السنوي --}}
                         <div class="rounded-lg bg-white p-3 dark:bg-gray-900 mb-4">
                             <div class="space-y-2 text-xs">
+                                @if(($personal['settings_yearly_target'] ?? 0) > 0)
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-500 dark:text-gray-400">التاركت الأساسي (الإعدادات):</span>
+                                    <span class="font-bold text-purple-600 dark:text-purple-400">{{ $iqd($personal['settings_yearly_target'] ?? 0) }}</span>
+                                </div>
+                                @endif
                                 <div class="flex items-center justify-between">
                                     <span class="text-gray-500 dark:text-gray-400">مستحقات المستثمرين (12 شهر):</span>
                                     <span class="font-bold text-orange-600 dark:text-orange-400">{{ $iqd($personal['yearly_investor_dues'] ?? 0) }}</span>
@@ -423,6 +429,12 @@
                         {{-- تفصيل التاركت الشهري --}}
                         <div class="rounded-lg bg-white p-3 dark:bg-gray-900 mb-4">
                             <div class="space-y-2 text-xs">
+                                @if(($personal['settings_monthly_target'] ?? 0) > 0)
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-500 dark:text-gray-400">التاركت الأساسي (الإعدادات ÷ 12):</span>
+                                    <span class="font-bold text-blue-600 dark:text-blue-400">{{ $iqd($personal['settings_monthly_target'] ?? 0) }}</span>
+                                </div>
+                                @endif
                                 <div class="flex items-center justify-between">
                                     <span class="text-gray-500 dark:text-gray-400">مستحقات المستثمرين الشهرية:</span>
                                     <span class="font-bold text-orange-600 dark:text-orange-400">{{ $iqd($personal['monthly_investor_dues'] ?? 0) }}</span>

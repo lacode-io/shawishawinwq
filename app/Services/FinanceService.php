@@ -188,7 +188,7 @@ class FinanceService
     {
         $month ??= now();
 
-        $businessExpenses = (int) Expense::where('type', ExpenseType::Business)
+        $businessExpenses = (int) Expense::whereIn('type', [ExpenseType::Business, ExpenseType::Custom])
             ->whereMonth('spent_at', $month->month)
             ->whereYear('spent_at', $month->year)
             ->sum('amount');
@@ -248,12 +248,18 @@ class FinanceService
             ->whereYear('spent_at', $month->year)
             ->sum('amount');
 
+        $custom = (int) Expense::where('type', ExpenseType::Custom)
+            ->whereMonth('spent_at', $month->month)
+            ->whereYear('spent_at', $month->year)
+            ->sum('amount');
+
         return [
             'business' => $business,
             'personal' => $personal,
             'salary' => $salary,
             'commission' => $commission,
-            'total' => $business + $personal + $salary + $commission,
+            'custom' => $custom,
+            'total' => $business + $personal + $salary + $commission + $custom,
         ];
     }
 
@@ -277,7 +283,7 @@ class FinanceService
     {
         $year ??= now()->year;
 
-        $businessExpenses = (int) Expense::where('type', ExpenseType::Business)
+        $businessExpenses = (int) Expense::whereIn('type', [ExpenseType::Business, ExpenseType::Custom])
             ->whereYear('spent_at', $year)
             ->sum('amount');
 
@@ -313,7 +319,7 @@ class FinanceService
             ->whereBetween('paid_at', [$from, $to])
             ->sum('amount');
 
-        $businessExpenses = (int) Expense::where('type', ExpenseType::Business)
+        $businessExpenses = (int) Expense::whereIn('type', [ExpenseType::Business, ExpenseType::Custom])
             ->whereBetween('spent_at', [$from, $to])
             ->sum('amount');
 
@@ -575,12 +581,16 @@ class FinanceService
 
     /**
      * بيانات التاركت الشخصي (السنوي والشهري)
-     * التاركت الشهري = مستحقات المستثمرين الشهرية + رواتب الشهر الحالي
-     * التاركت السنوي = مستحقات المستثمرين لـ 12 شهر + الرواتب المدفوعة هذه السنة
+     * التاركت السنوي = التاركت من الإعدادات + مستحقات المستثمرين (12 شهر) + الرواتب المدفوعة هذه السنة
+     * التاركت الشهري = (التاركت من الإعدادات ÷ 12) + مستحقات المستثمرين الشهرية + رواتب الشهر
      */
     public function personalTarget(): array
     {
         $settings = Setting::instance();
+
+        // التاركت الأساسي من الإعدادات
+        $settingsYearlyTarget = (int) $settings->yearly_target_amount;
+        $settingsMonthlyTarget = $settingsYearlyTarget > 0 ? (int) ceil($settingsYearlyTarget / 12) : 0;
 
         // مستحقات المستثمرين الشهرية
         $monthlyInvestorDues = (int) Investor::where('status', InvestorStatus::Active)
@@ -600,11 +610,11 @@ class FinanceService
             ->whereYear('spent_at', now()->year)
             ->sum('amount');
 
-        // التاركت الشهري = مستحقات المستثمرين + رواتب الشهر
-        $monthlyTarget = $monthlyInvestorDues + $monthlySalaries;
+        // التاركت الشهري = التاركت الأساسي + مستحقات المستثمرين + رواتب الشهر
+        $monthlyTarget = $settingsMonthlyTarget + $monthlyInvestorDues + $monthlySalaries;
 
-        // التاركت السنوي = مستحقات المستثمرين (12 شهر) + الرواتب المدفوعة هذه السنة
-        $yearlyTarget = $yearlyInvestorDues + $yearlySalaries;
+        // التاركت السنوي = التاركت الأساسي + مستحقات المستثمرين (12 شهر) + الرواتب المدفوعة هذه السنة
+        $yearlyTarget = $settingsYearlyTarget + $yearlyInvestorDues + $yearlySalaries;
 
         // رصيد القاصة هو مقياس الإنجاز
         $balance = (int) $settings->cash_register_balance;
@@ -615,6 +625,8 @@ class FinanceService
         return [
             'yearly_target' => $yearlyTarget,
             'monthly_target' => $monthlyTarget,
+            'settings_yearly_target' => $settingsYearlyTarget,
+            'settings_monthly_target' => $settingsMonthlyTarget,
             'monthly_investor_dues' => $monthlyInvestorDues,
             'yearly_investor_dues' => $yearlyInvestorDues,
             'monthly_salaries' => $monthlySalaries,

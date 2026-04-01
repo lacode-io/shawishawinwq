@@ -189,14 +189,16 @@ class CustomerResource extends Resource
 
                         Forms\Components\DatePicker::make('delivery_date')
                             ->label(__('Delivery Date'))
-                            ->required()
+                            ->required(fn (Forms\Get $get): bool => $get('payment_type') !== PaymentType::NoPayment->value)
                             ->native(false)
-                            ->displayFormat('Y/m/d'),
+                            ->displayFormat('Y/m/d')
+                            ->visible(fn (Forms\Get $get): bool => $get('payment_type') !== PaymentType::NoPayment->value),
 
                         Forms\Components\DatePicker::make('payment_due_date')
                             ->label('تاريخ التسديد')
                             ->native(false)
-                            ->displayFormat('Y/m/d'),
+                            ->displayFormat('Y/m/d')
+                            ->visible(fn (Forms\Get $get): bool => $get('payment_type') !== PaymentType::NoPayment->value),
 
                         // ── حقول الأقساط الشهرية ──
                         Forms\Components\TextInput::make('duration_months')
@@ -232,6 +234,12 @@ class CustomerResource extends Resource
                                 ? 'عدد الأيام بين كل دفعة واخرى'
                                 : 'عدد الأيام من تاريخ التسليم لاستحقاق الدفعة')
                             ->visible(fn (Forms\Get $get): bool => in_array($get('payment_type'), [PaymentType::LumpSum->value, PaymentType::DurationBased->value])),
+
+                        Forms\Components\Placeholder::make('no_payment_info')
+                            ->label('')
+                            ->content('لا يوجد تسديد - المبلغ المستحق 0 ولا يتطلب جدول أقساط')
+                            ->visible(fn (Forms\Get $get): bool => $get('payment_type') === PaymentType::NoPayment->value)
+                            ->columnSpanFull(),
 
                         Forms\Components\Select::make('status')
                             ->label(__('Status'))
