@@ -651,8 +651,8 @@ class FinanceService
             ->whereYear('spent_at', now()->year)
             ->sum('amount');
 
-        // التاركت الشهري = رواتب الشهر + مستحقات المستثمرين (+ التاركت الأساسي)
-        $monthlyTarget = $settingsMonthlyTarget + $monthlyInvestorDues + $monthlySalaries;
+        // التاركت الشهري = رواتب الشهر + مستحقات المستثمرين فقط
+        $monthlyTarget = $monthlyInvestorDues + $monthlySalaries;
 
         // التاركت السنوي = الرواتب المدفوعة + مستحقات المستثمرين 12 شهر (+ التاركت الأساسي)
         $yearlyTarget = $settingsYearlyTarget + $yearlyInvestorDues + $yearlySalaries;
