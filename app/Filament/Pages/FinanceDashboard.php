@@ -158,6 +158,13 @@ class FinanceDashboard extends Page implements HasForms
             // ── Monthly Profit (selected month) ──
             'profit_month_val' => (int) $this->profitMonth,
             'profit_year_val' => (int) $this->profitYear,
+            'monthly_profit_debug_count' => Customer::whereMonth('delivery_date', (int) $this->profitMonth)
+                ->whereYear('delivery_date', (int) $this->profitYear)
+                ->count(),
+            'monthly_profit_debug_raw' => Customer::whereMonth('delivery_date', (int) $this->profitMonth)
+                ->whereYear('delivery_date', (int) $this->profitYear)
+                ->selectRaw('SUM(product_sale_total) as total_sale, SUM(COALESCE(product_cost_price, 0)) as total_cost')
+                ->first(),
             'monthly_profit' => $finance->monthlyProfit((int) ($this->profitMonth ?? now()->month), (int) ($this->profitYear ?? now()->year)),
 
             // ── Annual ──
