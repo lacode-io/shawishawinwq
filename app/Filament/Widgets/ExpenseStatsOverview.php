@@ -34,7 +34,10 @@ class ExpenseStatsOverview extends StatsOverviewWidget
         $commissionTotal = (int) Expense::where('type', ExpenseType::Commission)
             ->sum('amount');
 
-        $grandTotal = $haiderTotal + $thaqrTotal + $otherTotal + $businessTotal + $salaryTotal + $commissionTotal;
+        $customTotal = (int) Expense::where('type', ExpenseType::Custom)
+            ->sum('amount');
+
+        $grandTotal = $haiderTotal + $thaqrTotal + $otherTotal + $businessTotal + $salaryTotal + $commissionTotal + $customTotal;
 
         return [
             Stat::make('حيدر', Number::iqd($haiderTotal))
@@ -66,6 +69,11 @@ class ExpenseStatsOverview extends StatsOverviewWidget
                 ->description('إجمالي الكومشن')
                 ->color('danger')
                 ->icon('heroicon-o-currency-dollar'),
+
+            Stat::make('مصاريف مخصصة', Number::iqd($customTotal))
+                ->description('إجمالي المصاريف المخصصة')
+                ->color('gray')
+                ->icon('heroicon-o-tag'),
 
             Stat::make('الإجمالي الكلي', Number::iqd($grandTotal))
                 ->description('جميع المصاريف')
