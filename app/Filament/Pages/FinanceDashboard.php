@@ -159,11 +159,9 @@ class FinanceDashboard extends Page implements HasForms
             'profit_month' => $this->profitMonth,
             'profit_year' => $this->profitYear,
             'monthly_profit' => $finance->monthlyProfit(\Carbon\Carbon::create($this->profitYear, $this->profitMonth)),
-            'monthly_net_profit' => $finance->monthlyNetProfit(\Carbon\Carbon::create($this->profitYear, $this->profitMonth)),
 
             // ── Annual ──
             'annual_profit' => $finance->annualProfit(),
-            'annual_net_profit' => $finance->annualNetProfit(),
 
             // ── Investor Coverage ──
             'investor_coverage' => $finance->investorCoverageAnalysis(),
