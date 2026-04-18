@@ -20,6 +20,10 @@ class TargetDashboard extends Page
 
     public ?int $settlementYear = null;
 
+    public ?int $timelineMonth = null;
+
+    public ?int $timelineYear = null;
+
     public static function canAccess(): bool
     {
         return auth()->user()->hasPermissionTo('view_targets');
@@ -44,11 +48,30 @@ class TargetDashboard extends Page
     {
         $this->settlementMonth = now()->month;
         $this->settlementYear = now()->year;
+        $this->timelineMonth = 0; // 0 = الكل
+        $this->timelineYear = now()->year;
     }
 
     public function getTargetData(): array
     {
         $finance = app(FinanceService::class);
+        $timeline = $finance->monthlyTimeline();
+
+        // فلترة التايملاين للعرض (بدون مس الحسابات)
+        $filteredTimeline = collect($timeline)
+            ->when((int) $this->timelineYear > 0, fn ($c) => $c->where('year', (int) $this->timelineYear))
+            ->when((int) $this->timelineMonth > 0, fn ($c) => $c->where('month', (int) $this->timelineMonth))
+            ->values()
+            ->all();
+
+        $timelineSummary = [
+            'total_profit' => (int) collect($timeline)->sum('monthly_profit'),
+            'total_investor_target' => (int) collect($timeline)->sum('monthly_investor_target'),
+            'total_net' => (int) collect($timeline)->sum('net'),
+            'surplus_months' => collect($timeline)->where('is_surplus', true)->count(),
+            'deficit_months' => collect($timeline)->where('is_surplus', false)->count(),
+            'final_balance' => (int) (collect($timeline)->last()['running_balance'] ?? 0),
+        ];
 
         return [
             'investor_targets' => $finance->investorTargets(),
@@ -57,6 +80,9 @@ class TargetDashboard extends Page
                 'balance' => $finance->cashRegisterBalance(),
                 'transactions' => $finance->cashRegisterTransactions(),
                 'preview' => $finance->settlementPreview($this->settlementMonth, $this->settlementYear),
+                'timeline' => $filteredTimeline,
+                'timeline_summary' => $timelineSummary,
+                'available_years' => collect($timeline)->pluck('year')->unique()->sort()->values()->all(),
             ],
         ];
     }

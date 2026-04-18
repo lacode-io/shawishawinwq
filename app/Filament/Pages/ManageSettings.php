@@ -60,6 +60,10 @@ class ManageSettings extends Page implements HasForms
         $formData['wa_twilio_from_number'] = $config['from_number'] ?? '';
         $formData['wa_cloud_phone_number_id'] = $config['phone_number_id'] ?? '';
         $formData['wa_cloud_access_token'] = $config['access_token'] ?? '';
+        $formData['wa_silsila_api_key'] = $config['silsila_api_key'] ?? '';
+        $formData['wa_silsila_base_url'] = $config['silsila_base_url'] ?? 'https://silsila.lacode.io';
+        $formData['wa_silsila_session_id'] = $config['silsila_session_id'] ?? '';
+        $formData['wa_silsila_channel_id'] = $config['silsila_channel_id'] ?? '';
 
         $this->form->fill($formData);
     }
@@ -132,6 +136,7 @@ class ManageSettings extends Page implements HasForms
                             ->options([
                                 'twilio' => 'Twilio WhatsApp',
                                 'cloud_api' => 'WhatsApp Cloud API (Meta)',
+                                'silsila' => 'Silsila',
                                 'fake' => 'وضع الاختبار (لا إرسال فعلي)',
                             ])
                             ->default('fake')
@@ -179,6 +184,34 @@ class ManageSettings extends Page implements HasForms
                             ])
                             ->visible(fn (Forms\Get $get): bool => $get('wa_provider') === 'cloud_api')
                             ->columns(2),
+
+                        // ── Silsila ──
+                        Forms\Components\Fieldset::make('Silsila')
+                            ->schema([
+                                Forms\Components\TextInput::make('wa_silsila_api_key')
+                                    ->label('API Key')
+                                    ->helperText('مفتاح X-Api-Key من لوحة Silsila')
+                                    ->password()
+                                    ->revealable()
+                                    ->columnSpan(2),
+
+                                Forms\Components\TextInput::make('wa_silsila_base_url')
+                                    ->label('Base URL')
+                                    ->default('https://silsila.lacode.io')
+                                    ->url()
+                                    ->columnSpan(2),
+
+                                Forms\Components\TextInput::make('wa_silsila_session_id')
+                                    ->label('Session ID')
+                                    ->helperText('معرف الجلسة (اختياري إذا تم تحديد Channel ID)'),
+
+                                Forms\Components\TextInput::make('wa_silsila_channel_id')
+                                    ->label('Channel ID')
+                                    ->helperText('رقم القناة (اختياري إذا تم تحديد Session ID)')
+                                    ->numeric(),
+                            ])
+                            ->visible(fn (Forms\Get $get): bool => $get('wa_provider') === 'silsila')
+                            ->columns(2),
                     ])->columns(2),
             ])
             ->statePath('data');
@@ -197,6 +230,10 @@ class ManageSettings extends Page implements HasForms
             'from_number' => $data['wa_twilio_from_number'] ?? '',
             'phone_number_id' => $data['wa_cloud_phone_number_id'] ?? '',
             'access_token' => $data['wa_cloud_access_token'] ?? '',
+            'silsila_api_key' => $data['wa_silsila_api_key'] ?? '',
+            'silsila_base_url' => $data['wa_silsila_base_url'] ?? 'https://silsila.lacode.io',
+            'silsila_session_id' => $data['wa_silsila_session_id'] ?? '',
+            'silsila_channel_id' => $data['wa_silsila_channel_id'] ?? '',
         ];
 
         $settings = Setting::instance();

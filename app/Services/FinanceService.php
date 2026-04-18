@@ -545,7 +545,82 @@ class FinanceService
     // ══════════════════════════════════════════════
 
     /**
+     * جدول الأشهر من أول زبون/مستثمر لحد الشهر الحالي
+     * لكل شهر: أرباح المبيعات الموزعة − تاركت المستثمرين النشطين بذاك الشهر = الصافي
+     * الرصيد التراكمي يرحل من شهر لشهر (العجز ينقص من فائض الشهر القادم)
+     */
+    public function monthlyTimeline(): array
+    {
+        $firstCustomer = Customer::whereNotNull('product_cost_price')
+            ->where('duration_months', '>', 0)
+            ->orderBy('delivery_date')
+            ->first();
+
+        $firstInvestor = Investor::orderBy('start_date')->first();
+
+        $dates = array_filter([
+            $firstCustomer?->delivery_date,
+            $firstInvestor?->start_date,
+        ]);
+
+        if (empty($dates)) {
+            return [];
+        }
+
+        $start = collect($dates)->min()->copy()->startOfMonth();
+        $end = now()->endOfMonth();
+
+        $investors = Investor::orderBy('start_date')->get();
+
+        $months = [];
+        $running = 0;
+        $cursor = $start->copy();
+
+        while ($cursor->lte($end)) {
+            $monthStart = $cursor->copy()->startOfMonth();
+            $monthEnd = $cursor->copy()->endOfMonth();
+
+            $profit = $this->distributedMonthlyProfit($cursor->month, $cursor->year);
+
+            $activeInvestors = $investors->filter(function (Investor $inv) use ($monthStart, $monthEnd) {
+                $invStart = $inv->start_date->copy()->startOfMonth();
+                $invEnd = $inv->start_date->copy()->addMonths($inv->investment_months)->endOfMonth();
+
+                return $invStart->lte($monthEnd) && $invEnd->gte($monthStart);
+            });
+
+            $monthlyInvestorTarget = (int) $activeInvestors->sum('monthly_target_amount');
+            $net = $profit - $monthlyInvestorTarget;
+            $running += $net;
+
+            $customersCount = Customer::whereNotNull('product_cost_price')
+                ->where('duration_months', '>', 0)
+                ->where('delivery_date', '<=', $monthEnd)
+                ->whereRaw('DATE_ADD(delivery_date, INTERVAL duration_months MONTH) >= ?', [$monthStart])
+                ->count();
+
+            $months[] = [
+                'month' => $cursor->month,
+                'year' => $cursor->year,
+                'label' => $cursor->translatedFormat('F Y'),
+                'monthly_profit' => $profit,
+                'monthly_investor_target' => $monthlyInvestorTarget,
+                'net' => $net,
+                'is_surplus' => $net >= 0,
+                'running_balance' => $running,
+                'active_investors_count' => $activeInvestors->count(),
+                'customers_count' => $customersCount,
+            ];
+
+            $cursor->addMonth();
+        }
+
+        return $months;
+    }
+
+    /**
      * بيانات تاركت كل مستثمر + الكلي
+     * يحسب لكل مستثمر عدد الأشهر الي تغطت من أرباح المبيعات حسب تاريخ بدايته
      */
     public function investorTargets(): array
     {
@@ -553,18 +628,76 @@ class FinanceService
             ->with('payouts')
             ->get();
 
+        $timeline = $this->monthlyTimeline();
         $monthlyCustomerProfit = $this->monthlyProfitFromActiveCustomers()['total_monthly_profit'];
         $totalMonthlyTarget = (int) $investors->sum('monthly_target_amount');
 
-        $perInvestor = $investors->map(function (Investor $investor) {
+        // current month's active investor total (لتوزيع حصة الشهر الحالي)
+        $currentMonthTotal = (int) $investors->filter(function (Investor $inv) {
+            $now = now();
+            $invEnd = $inv->start_date->copy()->addMonths($inv->investment_months);
+
+            return $inv->start_date->lte($now) && $invEnd->gte($now);
+        })->sum('monthly_target_amount');
+
+        $perInvestor = $investors->map(function (Investor $investor) use ($timeline, $currentMonthTotal) {
             $monthlyTarget = $investor->monthly_target_amount;
             $yearlyTarget = $monthlyTarget * 12;
-            $totalTarget = $investor->total_due; // مبلغ الاستثمار + الأرباح
+            $totalTarget = $investor->total_due;
             $totalPaid = $investor->total_paid_out;
             $progressPercent = $totalTarget > 0 ? round(($totalPaid / $totalTarget) * 100, 1) : 0;
 
             $elapsed = min($investor->elapsed_months, $investor->investment_months);
-            // نسبة الإنجاز حسب الأشهر المنقضية فقط (الوقت)
+
+            // حساب تغطية الأشهر من التايملاين
+            $investorStart = $investor->start_date->copy()->startOfMonth();
+            $investorEnd = $investor->start_date->copy()->addMonths($investor->investment_months)->startOfMonth();
+
+            $cumulativeAllocated = 0;
+            $monthsCovered = 0;
+            $monthsMissed = 0;
+            $thisMonthAchieved = 0;
+            $now = now();
+
+            foreach ($timeline as $row) {
+                $rowDate = \Carbon\Carbon::create($row['year'], $row['month'], 1);
+
+                // خارج نطاق هذا المستثمر
+                if ($rowDate->lt($investorStart) || $rowDate->gte($investorEnd)) {
+                    continue;
+                }
+
+                // لا نحسب الشهر المقبل لمستثمر ابتدى متأخر (بس اذا مضى)
+                if ($rowDate->gt($now)) {
+                    continue;
+                }
+
+                // حصة هذا المستثمر من ربح هذا الشهر = target/total_active_that_month × profit
+                $share = $row['monthly_investor_target'] > 0
+                    ? $monthlyTarget / $row['monthly_investor_target']
+                    : 0;
+                $allocated = (int) round($row['monthly_profit'] * $share);
+                $cumulativeAllocated += $allocated;
+
+                if ($allocated >= $monthlyTarget) {
+                    $monthsCovered++;
+                } else {
+                    $monthsMissed++;
+                }
+
+                if ($row['month'] === $now->month && $row['year'] === $now->year) {
+                    $thisMonthAchieved = $allocated;
+                }
+            }
+
+            $coveragePercent = $elapsed > 0
+                ? round(($monthsCovered / $elapsed) * 100, 1)
+                : 0;
+
+            $thisMonthProgress = $monthlyTarget > 0
+                ? round(min(100, ($thisMonthAchieved / $monthlyTarget) * 100), 1)
+                : 0;
+
             $monthsProgress = $investor->investment_months > 0
                 ? round(($elapsed / $investor->investment_months) * 100, 1)
                 : 0;
@@ -582,12 +715,21 @@ class FinanceService
                 'total_paid' => $totalPaid,
                 'remaining' => $investor->remaining_balance,
                 'elapsed_months' => $elapsed,
+                'months_covered' => $monthsCovered,
+                'months_missed' => $monthsMissed,
+                'coverage_percent' => min($coveragePercent, 100),
+                'cumulative_allocated' => $cumulativeAllocated,
+                'this_month_achieved' => $thisMonthAchieved,
+                'this_month_progress' => $thisMonthProgress,
                 'months_progress' => min($monthsProgress, 100),
                 'progress_percent' => min($progressPercent, 100),
                 'start_date' => $investor->start_date->format('Y/m/d'),
                 'payout_due_date' => $investor->payout_due_date->format('Y/m/d'),
             ];
-        })->all();
+        })
+        ->sortByDesc('coverage_percent')
+        ->values()
+        ->all();
 
         // المجموع الكلي
         $totalInvested = (int) $investors->sum('amount_invested');
@@ -597,7 +739,6 @@ class FinanceService
         $totalYearly = $totalMonthly * 12;
         $totalProgress = $totalDue > 0 ? round(($totalPaidAll / $totalDue) * 100, 1) : 0;
 
-        // تغطية من أرباح المبيعات
         $profitCoverage = $monthlyCustomerProfit - $totalMonthlyTarget;
 
         return [

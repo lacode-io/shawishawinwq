@@ -30,6 +30,14 @@ class WhatsAppManager
                 phoneNumberId: $config['phone_number_id'] ?? '',
                 accessToken: $config['access_token'] ?? '',
             ),
+            'silsila' => new SilsilaWhatsAppProvider(
+                apiKey: $config['silsila_api_key'] ?? '',
+                baseUrl: $config['silsila_base_url'] ?? 'https://silsila.lacode.io',
+                sessionId: $config['silsila_session_id'] ?? null,
+                channelId: isset($config['silsila_channel_id']) && $config['silsila_channel_id'] !== ''
+                    ? (int) $config['silsila_channel_id']
+                    : null,
+            ),
             default => new FakeWhatsAppProvider,
         };
 
