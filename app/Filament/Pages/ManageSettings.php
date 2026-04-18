@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Models\Setting;
 use App\Services\WhatsApp\WhatsAppManager;
+use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -43,6 +44,62 @@ class ManageSettings extends Page implements HasForms
     public function getTitle(): string
     {
         return __('General Settings');
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Actions\Action::make('sendTestWhatsApp')
+                ->label('إرسال اشعار تجريبي')
+                ->icon('heroicon-o-paper-airplane')
+                ->color('success')
+                ->requiresConfirmation()
+                ->modalHeading('إرسال اشعار واتساب تجريبي')
+                ->modalDescription('سيتم الإرسال المباشر (بدون قائمة انتظار) إلى الرقم +9647712699961')
+                ->modalSubmitActionLabel('إرسال')
+                ->action(function (): void {
+                    $this->sendTestWhatsAppMessage();
+                }),
+        ];
+    }
+
+    protected function sendTestWhatsAppMessage(): void
+    {
+        $phone = '+9647712699961';
+        $message = 'هذه رسالة تجريبية من لوحة '.(Setting::instance()->site_name ?? 'النظام').' — '.now()->format('Y-m-d H:i');
+
+        try {
+            $manager = app(WhatsAppManager::class);
+            $manager->reset();
+
+            $log = $manager->send(
+                to: $phone,
+                message: $message,
+                messageType: 'test_message',
+            );
+
+            if ($log->status === 'sent') {
+                Notification::make()
+                    ->title('تم إرسال الاشعار التجريبي بنجاح')
+                    ->body('Message ID: '.($log->provider_message_id ?? '-'))
+                    ->success()
+                    ->send();
+
+                return;
+            }
+
+            Notification::make()
+                ->title('فشل إرسال الاشعار التجريبي')
+                ->body($log->error ?? 'خطأ غير معروف')
+                ->danger()
+                ->send();
+        } catch (\Throwable $e) {
+            Notification::make()
+                ->title('خطأ في الإرسال')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
     }
 
     public function mount(): void
