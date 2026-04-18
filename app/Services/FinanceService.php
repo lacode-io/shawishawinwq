@@ -766,7 +766,7 @@ class FinanceService
      * التاركت السنوي = التاركت من الإعدادات + مستحقات المستثمرين (12 شهر) + الرواتب المدفوعة هذه السنة
      * التاركت الشهري = (التاركت من الإعدادات ÷ 12) + مستحقات المستثمرين الشهرية + رواتب الشهر
      */
-    public function personalTarget(): array
+    public function personalTarget(?int $computedBalance = null): array
     {
         $settings = Setting::instance();
 
@@ -807,8 +807,8 @@ class FinanceService
         // الفائض الشهري = أرباح الزبائن - التاركت الشهري
         $monthlySurplus = $monthlyCustomerProfit - $monthlyTarget;
 
-        // رصيد القاصة
-        $balance = (int) $settings->cash_register_balance;
+        // رصيد القاصة (التراكمي من التايملاين اذا تم تمريره)
+        $balance = $computedBalance ?? (int) $settings->cash_register_balance;
         $yearlyProgress = $yearlyTarget > 0 ? round((max(0, $balance) / $yearlyTarget) * 100, 1) : 0;
 
         return [
