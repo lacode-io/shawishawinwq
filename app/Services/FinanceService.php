@@ -580,7 +580,8 @@ class FinanceService
             $monthStart = $cursor->copy()->startOfMonth();
             $monthEnd = $cursor->copy()->endOfMonth();
 
-            $profit = $this->distributedMonthlyProfit($cursor->month, $cursor->year);
+            // أرباح الشهر = الإجمالي − رأس المال للزبائن المسلمين بهذا الشهر
+            $profit = $this->monthlyProfit($cursor->month, $cursor->year);
 
             $activeInvestors = $investors->filter(function (Investor $inv) use ($monthStart, $monthEnd) {
                 $invStart = $inv->start_date->copy()->startOfMonth();
@@ -593,10 +594,9 @@ class FinanceService
             $net = $profit - $monthlyInvestorTarget;
             $running += $net;
 
-            $customersCount = Customer::whereNotNull('product_cost_price')
-                ->where('duration_months', '>', 0)
-                ->where('delivery_date', '<=', $monthEnd)
-                ->whereRaw('DATE_ADD(delivery_date, INTERVAL duration_months MONTH) >= ?', [$monthStart])
+            // عدد الزبائن المسلمين بهذا الشهر
+            $customersCount = Customer::whereMonth('delivery_date', $cursor->month)
+                ->whereYear('delivery_date', $cursor->year)
                 ->count();
 
             $months[] = [
