@@ -2,7 +2,9 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\Customer;
 use App\Models\Setting;
+use App\Services\WhatsApp\MessageTemplates;
 use App\Services\WhatsApp\WhatsAppManager;
 use Filament\Actions;
 use Filament\Forms;
@@ -66,7 +68,6 @@ class ManageSettings extends Page implements HasForms
     protected function sendTestWhatsAppMessage(): void
     {
         $phone = '+9647712699961';
-        $message = 'هذه رسالة تجريبية من لوحة '.(Setting::instance()->site_name ?? 'النظام').' — '.now()->format('Y-m-d H:i');
 
         try {
             $manager = app(WhatsAppManager::class);
@@ -74,7 +75,7 @@ class ManageSettings extends Page implements HasForms
 
             $log = $manager->send(
                 to: $phone,
-                message: $message,
+                message: $this->buildTestCustomerReminder(),
                 messageType: 'test_message',
             );
 
@@ -356,6 +357,26 @@ class ManageSettings extends Page implements HasForms
             ->title(__('Saved successfully.'))
             ->success()
             ->send();
+    }
+
+    /**
+     * Build a customer payment-due reminder for the test button.
+     * Uses the first active customer as sample data; falls back to a stub.
+     */
+    protected function buildTestCustomerReminder(): string
+    {
+        $customer = Customer::query()->active()->whereNotNull('phone')->first();
+
+        if (! $customer) {
+            $customer = new Customer([
+                'full_name' => 'زبون تجريبي',
+                'phone' => '07712699961',
+                'product_sale_total' => 1000000,
+                'duration_months' => 10,
+            ]);
+        }
+
+        return MessageTemplates::paymentDueReminder($customer);
     }
 
     /**
