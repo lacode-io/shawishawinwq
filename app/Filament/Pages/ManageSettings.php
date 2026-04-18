@@ -2,9 +2,12 @@
 
 namespace App\Filament\Pages;
 
+use App\Enums\CustomerStatus;
+use App\Jobs\SendOverduePaymentReminder;
+use App\Jobs\SendPaymentDueTodayReminder;
+use App\Jobs\SendPaymentDueTomorrowReminder;
 use App\Models\Customer;
 use App\Models\Setting;
-use App\Services\WhatsApp\MessageTemplates;
 use App\Services\WhatsApp\WhatsAppManager;
 use Filament\Actions;
 use Filament\Forms;
@@ -48,59 +51,68 @@ class ManageSettings extends Page implements HasForms
         return __('General Settings');
     }
 
+    protected const TEST_PHONE = '+9647712699961';
+
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('sendTestWhatsApp')
-                ->label('إرسال اشعار تجريبي')
+            Actions\Action::make('simulateAllReminders')
+                ->label('محاكاة اشعارات كل الزبائن')
                 ->icon('heroicon-o-paper-airplane')
                 ->color('success')
                 ->requiresConfirmation()
-                ->modalHeading('إرسال اشعار واتساب تجريبي')
-                ->modalDescription('سيتم الإرسال المباشر (بدون قائمة انتظار) إلى الرقم +9647712699961')
-                ->modalSubmitActionLabel('إرسال')
+                ->modalHeading('محاكاة اشعارات الزبائن')
+                ->modalDescription('سيتم إرسال اشعار تذكير لكل زبون فعّال (قبل يوم + بيوم التسديد + متأخر) — الكل يُوجَّه إلى '.self::TEST_PHONE.' عبر قائمة الانتظار.')
+                ->modalSubmitActionLabel('بدء المحاكاة')
                 ->action(function (): void {
-                    $this->sendTestWhatsAppMessage();
+                    $this->simulateAllReminders();
                 }),
         ];
     }
 
-    protected function sendTestWhatsAppMessage(): void
+    protected function simulateAllReminders(): void
     {
-        $phone = '+9647712699961';
+        $manager = app(WhatsAppManager::class);
+        $manager->reset();
 
-        try {
-            $manager = app(WhatsAppManager::class);
-            $manager->reset();
-
-            $log = $manager->send(
-                to: $phone,
-                message: $this->buildTestCustomerReminder(),
-                messageType: 'test_message',
-            );
-
-            if ($log->status === 'sent') {
-                Notification::make()
-                    ->title('تم إرسال الاشعار التجريبي بنجاح')
-                    ->body('Message ID: '.($log->provider_message_id ?? '-'))
-                    ->success()
-                    ->send();
-
-                return;
-            }
-
+        if (! $manager->isEnabled()) {
             Notification::make()
-                ->title('فشل إرسال الاشعار التجريبي')
-                ->body($log->error ?? 'خطأ غير معروف')
-                ->danger()
+                ->title('إشعارات واتساب معطلة')
+                ->body('فعّل الإشعارات أولاً من الإعدادات.')
+                ->warning()
                 ->send();
-        } catch (\Throwable $e) {
-            Notification::make()
-                ->title('خطأ في الإرسال')
-                ->body($e->getMessage())
-                ->danger()
-                ->send();
+
+            return;
         }
+
+        $customers = Customer::query()
+            ->where('status', CustomerStatus::Active)
+            ->where('is_platform', false)
+            ->get();
+
+        if ($customers->isEmpty()) {
+            Notification::make()
+                ->title('لا يوجد زبائن فعّالون')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        $dispatched = 0;
+
+        foreach ($customers as $customer) {
+            SendPaymentDueTomorrowReminder::dispatch($customer, self::TEST_PHONE);
+            SendPaymentDueTodayReminder::dispatch($customer, self::TEST_PHONE);
+            SendOverduePaymentReminder::dispatch($customer, self::TEST_PHONE);
+            $dispatched += 3;
+        }
+
+        Notification::make()
+            ->title('تم جدولة '.$dispatched.' اشعار تجريبي')
+            ->body('لـ '.$customers->count().' زبون — كلها تذهب إلى '.self::TEST_PHONE)
+            ->success()
+            ->send();
     }
 
     public function mount(): void
@@ -357,26 +369,6 @@ class ManageSettings extends Page implements HasForms
             ->title(__('Saved successfully.'))
             ->success()
             ->send();
-    }
-
-    /**
-     * Build a customer payment-due reminder for the test button.
-     * Uses the first active customer as sample data; falls back to a stub.
-     */
-    protected function buildTestCustomerReminder(): string
-    {
-        $customer = Customer::query()->active()->whereNotNull('phone')->first();
-
-        if (! $customer) {
-            $customer = new Customer([
-                'full_name' => 'زبون تجريبي',
-                'phone' => '07712699961',
-                'product_sale_total' => 1000000,
-                'duration_months' => 10,
-            ]);
-        }
-
-        return MessageTemplates::paymentDueReminder($customer);
     }
 
     /**

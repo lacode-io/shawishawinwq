@@ -4,16 +4,19 @@ namespace App\Console\Commands;
 
 use App\Enums\CustomerStatus;
 use App\Jobs\SendLatePayerAdminAlert;
-use App\Jobs\SendPaymentDueReminder;
+use App\Jobs\SendOverduePaymentReminder;
+use App\Jobs\SendPaymentDueTodayReminder;
+use App\Jobs\SendPaymentDueTomorrowReminder;
 use App\Models\Customer;
 use App\Services\WhatsApp\WhatsAppManager;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 
 class SendDailyReminders extends Command
 {
     protected $signature = 'whatsapp:send-reminders';
 
-    protected $description = 'Send daily WhatsApp payment reminders to customers with upcoming/overdue installments';
+    protected $description = 'Dispatch WhatsApp reminders: one day before, on due day, and daily while overdue (year-agnostic, month+day match)';
 
     public function handle(WhatsAppManager $whatsapp): int
     {
@@ -23,35 +26,65 @@ class SendDailyReminders extends Command
             return self::SUCCESS;
         }
 
-        $customers = Customer::where('status', CustomerStatus::Active)
+        $today = now()->startOfDay();
+        $tomorrow = $today->copy()->addDay();
+
+        $customers = Customer::query()
+            ->where('status', CustomerStatus::Active)
+            ->where('is_platform', false)
             ->whereNotNull('phone')
             ->get();
 
-        $sentReminders = 0;
-        $sentAlerts = 0;
+        $stats = ['tomorrow' => 0, 'today' => 0, 'overdue' => 0, 'alerts' => 0];
 
         foreach ($customers as $customer) {
-            if (! $customer->is_late) {
-                // Check if due within 3 days
-                $nextDue = $customer->next_due_date;
-                if (! $nextDue || $nextDue->diffInDays(now()) > 3) {
-                    continue;
-                }
+            $due = $customer->next_due_date;
+
+            if (! $due instanceof Carbon) {
+                continue;
             }
 
-            // Dispatch reminder to customer
-            SendPaymentDueReminder::dispatch($customer);
-            $sentReminders++;
+            $dueDay = $due->startOfDay();
 
-            // If late, also alert admin
-            if ($customer->is_late) {
+            if ($this->matchesMonthDay($dueDay, $tomorrow)) {
+                SendPaymentDueTomorrowReminder::dispatch($customer);
+                $stats['tomorrow']++;
+
+                continue;
+            }
+
+            if ($this->matchesMonthDay($dueDay, $today)) {
+                SendPaymentDueTodayReminder::dispatch($customer);
+                $stats['today']++;
+
+                continue;
+            }
+
+            if ($dueDay->lt($today) && $customer->is_late) {
+                SendOverduePaymentReminder::dispatch($customer);
+                $stats['overdue']++;
+
                 SendLatePayerAdminAlert::dispatch($customer);
-                $sentAlerts++;
+                $stats['alerts']++;
             }
         }
 
-        $this->info("Dispatched {$sentReminders} reminders and {$sentAlerts} admin alerts.");
+        $this->info(sprintf(
+            'Dispatched — tomorrow: %d, today: %d, overdue: %d, admin alerts: %d',
+            $stats['tomorrow'],
+            $stats['today'],
+            $stats['overdue'],
+            $stats['alerts'],
+        ));
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Match month and day only, ignoring year.
+     */
+    private function matchesMonthDay(Carbon $a, Carbon $b): bool
+    {
+        return $a->month === $b->month && $a->day === $b->day;
     }
 }

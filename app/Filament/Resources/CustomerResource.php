@@ -542,6 +542,7 @@ class CustomerResource extends Resource
                                 ->send();
                         })
                         ->visible(fn (Customer $record): bool => $record->status === CustomerStatus::Active
+                            && ! $record->is_platform
                             && filled($record->phone)
                             && auth()->user()->hasPermissionTo('update_customers')),
 

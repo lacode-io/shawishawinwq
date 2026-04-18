@@ -11,7 +11,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
-class SendPaymentReceivedConfirmation implements ShouldQueue
+class SendPaymentDueTodayReminder implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -21,7 +21,7 @@ class SendPaymentReceivedConfirmation implements ShouldQueue
 
     public function __construct(
         public Customer $customer,
-        public int $amountPaid,
+        public ?string $overridePhone = null,
     ) {}
 
     public function handle(WhatsAppManager $whatsapp): void
@@ -30,23 +30,25 @@ class SendPaymentReceivedConfirmation implements ShouldQueue
             return;
         }
 
-        if ($this->customer->is_platform) {
+        if ($this->overridePhone === null && $this->customer->is_platform) {
             return;
         }
 
-        if (! $this->customer->phone) {
+        $to = $this->overridePhone ?: $this->customer->phone;
+
+        if (! $to) {
             return;
         }
 
-        $message = MessageTemplates::paymentReceivedConfirmation(
-            $this->customer,
-            $this->amountPaid,
-        );
+        if ($this->overridePhone === null
+            && ! $whatsapp->canSend($to, 'payment_due_today')) {
+            return;
+        }
 
         $whatsapp->send(
-            to: $this->customer->phone,
-            message: $message,
-            messageType: 'payment_received',
+            to: $to,
+            message: MessageTemplates::paymentDueToday($this->customer),
+            messageType: 'payment_due_today',
             notifiable: $this->customer,
         );
     }

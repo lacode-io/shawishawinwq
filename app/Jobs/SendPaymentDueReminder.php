@@ -33,6 +33,11 @@ class SendPaymentDueReminder implements ShouldQueue
             return;
         }
 
+        if ($this->customer->is_platform) {
+            \Log::info('Skipping platform customer', ['customer_id' => $this->customer->id]);
+            return;
+        }
+
         if (! $this->customer->phone) {
             \Log::warning('Customer has no phone', ['customer_id' => $this->customer->id]);
             return;
