@@ -10,6 +10,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Illuminate\Support\Facades\Http;
 
 class ManageSettings extends Page implements HasForms
 {
@@ -193,21 +194,45 @@ class ManageSettings extends Page implements HasForms
                                     ->helperText('مفتاح X-Api-Key من لوحة Silsila')
                                     ->password()
                                     ->revealable()
+                                    ->live(onBlur: true)
                                     ->columnSpan(2),
 
                                 Forms\Components\TextInput::make('wa_silsila_base_url')
                                     ->label('Base URL')
                                     ->default('https://silsila.lacode.io')
                                     ->url()
+                                    ->live(onBlur: true)
                                     ->columnSpan(2),
 
-                                Forms\Components\TextInput::make('wa_silsila_session_id')
-                                    ->label('Session ID')
-                                    ->helperText('معرف الجلسة (اختياري إذا تم تحديد Channel ID)'),
+                                Forms\Components\Select::make('wa_silsila_session_id')
+                                    ->label('الجلسة')
+                                    ->helperText('اختر الجلسة من Silsila (اضغط تحديث لإعادة الجلب)')
+                                    ->options(fn (Forms\Get $get): array => $this->fetchSilsilaSessions(
+                                        (string) $get('wa_silsila_api_key'),
+                                        (string) ($get('wa_silsila_base_url') ?: 'https://silsila.lacode.io'),
+                                    ))
+                                    ->searchable()
+                                    ->suffixAction(
+                                        Forms\Components\Actions\Action::make('refreshSilsilaSessions')
+                                            ->icon('heroicon-o-arrow-path')
+                                            ->tooltip('تحديث قائمة الجلسات')
+                                            ->action(function (Forms\Get $get): void {
+                                                $this->fetchSilsilaSessions(
+                                                    (string) $get('wa_silsila_api_key'),
+                                                    (string) ($get('wa_silsila_base_url') ?: 'https://silsila.lacode.io'),
+                                                    forceRefresh: true,
+                                                );
+
+                                                Notification::make()
+                                                    ->title('تم تحديث قائمة الجلسات')
+                                                    ->success()
+                                                    ->send();
+                                            })
+                                    ),
 
                                 Forms\Components\TextInput::make('wa_silsila_channel_id')
                                     ->label('Channel ID')
-                                    ->helperText('رقم القناة (اختياري إذا تم تحديد Session ID)')
+                                    ->helperText('رقم القناة (اختياري إذا تم تحديد الجلسة)')
                                     ->numeric(),
                             ])
                             ->visible(fn (Forms\Get $get): bool => $get('wa_provider') === 'silsila')
@@ -274,5 +299,56 @@ class ManageSettings extends Page implements HasForms
             ->title(__('Saved successfully.'))
             ->success()
             ->send();
+    }
+
+    /**
+     * Fetch WhatsApp sessions from the Silsila API for the session dropdown.
+     *
+     * @return array<string, string>
+     */
+    protected function fetchSilsilaSessions(string $apiKey, string $baseUrl, bool $forceRefresh = false): array
+    {
+        if ($apiKey === '') {
+            return [];
+        }
+
+        static $cache = [];
+        $cacheKey = md5($apiKey.'|'.$baseUrl);
+
+        if (! $forceRefresh && isset($cache[$cacheKey])) {
+            return $cache[$cacheKey];
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'X-Api-Key' => $apiKey,
+                'Accept' => 'application/json',
+            ])->timeout(10)->get(rtrim($baseUrl, '/').'/api/v1/whatsapp/sessions');
+
+            if (! $response->successful()) {
+                return $cache[$cacheKey] = [];
+            }
+
+            $sessions = collect($response->json('data') ?? [])
+                ->mapWithKeys(function (array $session): array {
+                    $sessionId = $session['session_id'] ?? null;
+                    if (! $sessionId) {
+                        return [];
+                    }
+
+                    $label = collect([
+                        $session['name'] ?? null,
+                        $session['phone'] ?? null,
+                        '['.($session['status'] ?? 'unknown').']',
+                    ])->filter()->implode(' — ');
+
+                    return [$sessionId => $label !== '' ? $label : $sessionId];
+                })
+                ->all();
+
+            return $cache[$cacheKey] = $sessions;
+        } catch (\Throwable $e) {
+            return $cache[$cacheKey] = [];
+        }
     }
 }
