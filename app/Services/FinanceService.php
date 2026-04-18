@@ -629,7 +629,8 @@ class FinanceService
             ->get();
 
         $timeline = $this->monthlyTimeline();
-        $monthlyCustomerProfit = $this->monthlyProfitFromActiveCustomers()['total_monthly_profit'];
+        // أرباح المبيعات الشهرية = الإجمالي − رأس المال للزبائن المسلمين هذا الشهر
+        $monthlyCustomerProfit = $this->monthlyProfit(now()->month, now()->year);
         $totalMonthlyTarget = (int) $investors->sum('monthly_target_amount');
 
         // current month's active investor total (لتوزيع حصة الشهر الحالي)
