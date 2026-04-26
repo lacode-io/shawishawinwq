@@ -56,6 +56,18 @@ class ManageSettings extends Page implements HasForms
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('previewUpcomingReminders')
+                ->label('عرض الاشعارات القادمة')
+                ->icon('heroicon-o-list-bullet')
+                ->color('info')
+                ->modalHeading('الاشعارات الحالية والقادمة (الـ 30 يوم القادمة)')
+                ->modalSubmitAction(false)
+                ->modalCancelActionLabel('إغلاق')
+                ->modalWidth('5xl')
+                ->modalContent(fn () => view('filament.pages.preview-reminders', [
+                    'events' => $this->buildUpcomingReminderEvents(30),
+                ])),
+
             Actions\Action::make('simulateAllReminders')
                 ->label('محاكاة اشعارات كل الزبائن')
                 ->icon('heroicon-o-paper-airplane')
@@ -68,6 +80,72 @@ class ManageSettings extends Page implements HasForms
                     $this->simulateAllReminders();
                 }),
         ];
+    }
+
+    /**
+     * Build the list of notification events for the next $days days.
+     * Returns events sorted by date, each containing customer, type, date.
+     *
+     * @return array<int, array{date: \Carbon\Carbon, customer: Customer, type: string, type_label: string, type_color: string}>
+     */
+    protected function buildUpcomingReminderEvents(int $days = 30): array
+    {
+        $today = now()->startOfDay();
+        $horizon = $today->copy()->addDays($days);
+
+        $customers = Customer::query()
+            ->where('status', CustomerStatus::Active)
+            ->where('is_platform', false)
+            ->whereNotNull('phone')
+            ->orderBy('full_name')
+            ->get();
+
+        $events = [];
+
+        foreach ($customers as $customer) {
+            $due = $customer->next_due_date;
+
+            if (! $due) {
+                continue;
+            }
+
+            $dueDay = $due->copy()->startOfDay();
+
+            $tomorrowReminderAt = $dueDay->copy()->subDay();
+            if ($tomorrowReminderAt->betweenIncluded($today, $horizon)) {
+                $events[] = [
+                    'date' => $tomorrowReminderAt,
+                    'customer' => $customer,
+                    'type' => 'tomorrow',
+                    'type_label' => 'تذكير قبل يوم',
+                    'type_color' => 'warning',
+                ];
+            }
+
+            if ($dueDay->betweenIncluded($today, $horizon)) {
+                $events[] = [
+                    'date' => $dueDay->copy(),
+                    'customer' => $customer,
+                    'type' => 'today',
+                    'type_label' => 'تذكير بيوم التسديد',
+                    'type_color' => 'primary',
+                ];
+            }
+
+            if ($dueDay->lt($today) && $customer->is_late) {
+                $events[] = [
+                    'date' => $today->copy(),
+                    'customer' => $customer,
+                    'type' => 'overdue',
+                    'type_label' => 'تنبيه متأخر (يومي)',
+                    'type_color' => 'danger',
+                ];
+            }
+        }
+
+        usort($events, fn (array $a, array $b): int => $a['date']->timestamp <=> $b['date']->timestamp);
+
+        return $events;
     }
 
     protected function simulateAllReminders(): void
