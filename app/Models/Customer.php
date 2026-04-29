@@ -110,34 +110,49 @@ class Customer extends Model
 
     public function getNextDueDateAttribute(): ?Carbon
     {
-        // دفعة واحدة: تاريخ التسليم + عدد الأيام
-        if ($this->payment_type === PaymentType::LumpSum) {
-            if ($this->payments()->exists()) {
-                return null; // تم التسديد
-            }
+        $hasAnchor = $this->payment_due_date instanceof Carbon;
+        $anchor = $hasAnchor
+            ? $this->payment_due_date->copy()
+            : $this->delivery_date?->copy();
 
-            return $this->delivery_date->copy()->addDays($this->lump_sum_days ?? 0);
-        }
-
-        // تسديد حسب مدة: تاريخ التسليم + (عدد الأيام × عدد الدفعات + 1)
-        if ($this->payment_type === PaymentType::DurationBased) {
-            $paidCount = $this->payments()->count();
-
-            if ($paidCount >= $this->duration_months) {
-                return null;
-            }
-
-            return $this->delivery_date->copy()->addDays(($this->lump_sum_days ?? 30) * ($paidCount + 1));
-        }
-
-        // أقساط شهرية
-        $paidCount = $this->payments()->count();
-
-        if ($paidCount >= $this->duration_months) {
+        if (! $anchor instanceof Carbon) {
             return null;
         }
 
-        return $this->delivery_date->copy()->addMonths($paidCount + 1);
+        $paidCount = $this->payments()->count();
+
+        // دفعة واحدة
+        if ($this->payment_type === PaymentType::LumpSum) {
+            if ($paidCount > 0) {
+                return null;
+            }
+
+            return $hasAnchor
+                ? $anchor
+                : $anchor->addDays($this->lump_sum_days ?? 0);
+        }
+
+        // تسديد حسب مدة
+        if ($this->payment_type === PaymentType::DurationBased) {
+            if ($paidCount >= ($this->duration_months ?? 0)) {
+                return null;
+            }
+
+            $cycleDays = $this->lump_sum_days ?? 30;
+
+            return $hasAnchor
+                ? $anchor->addDays($cycleDays * $paidCount)
+                : $anchor->addDays($cycleDays * ($paidCount + 1));
+        }
+
+        // أقساط شهرية
+        if ($paidCount >= ($this->duration_months ?? 0)) {
+            return null;
+        }
+
+        return $hasAnchor
+            ? $anchor->addMonths($paidCount)
+            : $anchor->addMonths($paidCount + 1);
     }
 
     public function getIsLateAttribute(): bool

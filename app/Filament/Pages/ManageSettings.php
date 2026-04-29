@@ -3,12 +3,14 @@
 namespace App\Filament\Pages;
 
 use App\Enums\CustomerStatus;
+use App\Enums\PaymentType;
 use App\Jobs\SendOverduePaymentReminder;
 use App\Jobs\SendPaymentDueTodayReminder;
 use App\Jobs\SendPaymentDueTomorrowReminder;
 use App\Models\Customer;
 use App\Models\Setting;
 use App\Services\WhatsApp\WhatsAppManager;
+use Carbon\Carbon;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -111,25 +113,30 @@ class ManageSettings extends Page implements HasForms
 
             $dueDay = $due->copy()->startOfDay();
 
-            $tomorrowReminderAt = $dueDay->copy()->subDay();
-            if ($tomorrowReminderAt->betweenIncluded($today, $horizon)) {
-                $events[] = [
-                    'date' => $tomorrowReminderAt,
-                    'customer' => $customer,
-                    'type' => 'tomorrow',
-                    'type_label' => 'تذكير قبل يوم',
-                    'type_color' => 'warning',
-                ];
-            }
+            // التواريخ الفعلية المتوقعة ضمن نطاق الـ horizon (تكرار شهري للأقساط)
+            $occurrences = $this->buildDueOccurrences($customer, $dueDay, $today, $horizon);
 
-            if ($dueDay->betweenIncluded($today, $horizon)) {
-                $events[] = [
-                    'date' => $dueDay->copy(),
-                    'customer' => $customer,
-                    'type' => 'today',
-                    'type_label' => 'تذكير بيوم التسديد',
-                    'type_color' => 'primary',
-                ];
+            foreach ($occurrences as $occurrence) {
+                $tomorrowReminderAt = $occurrence->copy()->subDay();
+                if ($tomorrowReminderAt->betweenIncluded($today, $horizon)) {
+                    $events[] = [
+                        'date' => $tomorrowReminderAt,
+                        'customer' => $customer,
+                        'type' => 'tomorrow',
+                        'type_label' => 'تذكير قبل يوم',
+                        'type_color' => 'warning',
+                    ];
+                }
+
+                if ($occurrence->betweenIncluded($today, $horizon)) {
+                    $events[] = [
+                        'date' => $occurrence->copy(),
+                        'customer' => $customer,
+                        'type' => 'today',
+                        'type_label' => 'تذكير بيوم التسديد',
+                        'type_color' => 'primary',
+                    ];
+                }
             }
 
             if ($dueDay->lt($today) && $customer->is_late) {
@@ -146,6 +153,42 @@ class ManageSettings extends Page implements HasForms
         usort($events, fn (array $a, array $b): int => $a['date']->timestamp <=> $b['date']->timestamp);
 
         return $events;
+    }
+
+    /**
+     * @return array<int, Carbon>
+     */
+    private function buildDueOccurrences(Customer $customer, Carbon $dueDay, Carbon $today, Carbon $horizon): array
+    {
+        $occurrences = [];
+
+        if ($customer->payment_type === PaymentType::LumpSum) {
+            return [$dueDay->copy()];
+        }
+
+        $cursor = $dueDay->copy();
+        $maxIterations = 24;
+
+        while ($cursor->lt($today) && $maxIterations-- > 0) {
+            if ($customer->payment_type === PaymentType::DurationBased) {
+                $cursor->addDays($customer->lump_sum_days ?? 30);
+            } else {
+                $cursor->addMonth();
+            }
+        }
+
+        $maxIterations = 24;
+        while ($cursor->lte($horizon) && $maxIterations-- > 0) {
+            $occurrences[] = $cursor->copy();
+
+            if ($customer->payment_type === PaymentType::DurationBased) {
+                $cursor->addDays($customer->lump_sum_days ?? 30);
+            } else {
+                $cursor->addMonth();
+            }
+        }
+
+        return $occurrences;
     }
 
     protected function simulateAllReminders(): void

@@ -16,7 +16,7 @@ class SendDailyReminders extends Command
 {
     protected $signature = 'whatsapp:send-reminders';
 
-    protected $description = 'Dispatch WhatsApp reminders: one day before, on due day, and daily while overdue (year-agnostic, month+day match)';
+    protected $description = 'Dispatch WhatsApp reminders: one day before, on due day, and daily while overdue (anchored on customer payment_due_date day, recurring monthly)';
 
     public function handle(WhatsAppManager $whatsapp): int
     {
@@ -45,15 +45,16 @@ class SendDailyReminders extends Command
             }
 
             $dueDay = $due->startOfDay();
+            $dayOfMonth = $dueDay->day;
 
-            if ($this->matchesMonthDay($dueDay, $tomorrow)) {
+            if ($tomorrow->day === $dayOfMonth && $dueDay->gte($today)) {
                 SendPaymentDueTomorrowReminder::dispatch($customer);
                 $stats['tomorrow']++;
 
                 continue;
             }
 
-            if ($this->matchesMonthDay($dueDay, $today)) {
+            if ($today->day === $dayOfMonth && $dueDay->gte($today)) {
                 SendPaymentDueTodayReminder::dispatch($customer);
                 $stats['today']++;
 
@@ -78,13 +79,5 @@ class SendDailyReminders extends Command
         ));
 
         return self::SUCCESS;
-    }
-
-    /**
-     * Match month and day only, ignoring year.
-     */
-    private function matchesMonthDay(Carbon $a, Carbon $b): bool
-    {
-        return $a->month === $b->month && $a->day === $b->day;
     }
 }
