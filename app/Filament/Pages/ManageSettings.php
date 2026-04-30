@@ -70,6 +70,18 @@ class ManageSettings extends Page implements HasForms
                     'events' => $this->buildUpcomingReminderEvents(30),
                 ])),
 
+            Actions\Action::make('runDailyRemindersNow')
+                ->label('تشغيل التذكيرات اليومية الآن')
+                ->icon('heroicon-o-bolt')
+                ->color('warning')
+                ->requiresConfirmation()
+                ->modalHeading('تشغيل التذكيرات اليومية يدوياً')
+                ->modalDescription('سيتم تشغيل أمر whatsapp:send-reminders فوراً وادراج الجوبس المطابقة لليوم في الطابور.')
+                ->modalSubmitActionLabel('تشغيل الآن')
+                ->action(function (): void {
+                    $this->runDailyRemindersNow();
+                }),
+
             Actions\Action::make('simulateAllReminders')
                 ->label('محاكاة اشعارات كل الزبائن')
                 ->icon('heroicon-o-paper-airplane')
@@ -82,6 +94,28 @@ class ManageSettings extends Page implements HasForms
                     $this->simulateAllReminders();
                 }),
         ];
+    }
+
+    protected function runDailyRemindersNow(): void
+    {
+        $exitCode = \Illuminate\Support\Facades\Artisan::call('whatsapp:send-reminders');
+        $output = trim(\Illuminate\Support\Facades\Artisan::output());
+
+        if ($exitCode !== 0) {
+            Notification::make()
+                ->title('فشل تشغيل التذكيرات')
+                ->body($output ?: 'حدث خطأ غير معروف.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        Notification::make()
+            ->title('تم تشغيل التذكيرات اليومية')
+            ->body($output ?: 'لا يوجد زبائن مطابقين اليوم.')
+            ->success()
+            ->send();
     }
 
     /**

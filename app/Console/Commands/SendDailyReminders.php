@@ -21,9 +21,7 @@ class SendDailyReminders extends Command
     public function handle(WhatsAppManager $whatsapp): int
     {
         if (! $whatsapp->isEnabled()) {
-            $this->warn('WhatsApp notifications are disabled.');
-
-            return self::SUCCESS;
+            $this->warn('WhatsApp notifications are disabled — dispatching jobs anyway; jobs will no-op until enabled.');
         }
 
         $today = now()->startOfDay();
