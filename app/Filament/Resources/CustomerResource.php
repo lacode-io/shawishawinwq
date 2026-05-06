@@ -484,7 +484,7 @@ class CustomerResource extends Resource
                                 'meta' => $data['notes'] ? ['notes' => $data['notes']] : null,
                             ]);
 
-                            SendPaymentReceivedConfirmation::dispatch($record->fresh(), (int) $data['amount']);
+                            SendPaymentReceivedConfirmation::dispatchSync($record->fresh(), (int) $data['amount']);
 
                             Notification::make()
                                 ->title('تم تسجيل التسديد بنجاح')

@@ -52,6 +52,11 @@ class PlanWhatsAppDay extends Command
                 continue;
             }
 
+            // إذا الزبون سدد قسط بهل الشهر التقويمي، تخطّيه كلياً — بدون أي إشعار.
+            if ($this->hasPaidThisMonth($customer, $date)) {
+                continue;
+            }
+
             $dueDay = $due->copy()->startOfDay();
             $dayOfMonth = $dueDay->day;
 
@@ -83,8 +88,8 @@ class PlanWhatsAppDay extends Command
                 continue;
             }
 
-            // متأخر — بس إذا ما سدد ولا قسط بهل الشهر التقويمي
-            if ($dueDay->lt($date) && $customer->is_late && ! $this->hasPaidThisMonth($customer, $date)) {
+            // متأخر
+            if ($dueDay->lt($date) && $customer->is_late) {
                 $created = $this->schedule(
                     $date,
                     ScheduledNotification::TYPE_OVERDUE,

@@ -6,6 +6,7 @@ use App\Enums\CustomerStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentType;
 use App\Filament\Resources\CustomerResource;
+use App\Jobs\SendPaymentReceivedConfirmation;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Notifications\Notification;
@@ -58,6 +59,8 @@ class ViewCustomer extends ViewRecord
                         'received_by' => auth()->id(),
                         'meta' => $data['notes'] ? ['notes' => $data['notes']] : null,
                     ]);
+
+                    SendPaymentReceivedConfirmation::dispatchSync($this->record->fresh(), (int) $data['amount']);
 
                     Notification::make()
                         ->title('تم تسجيل التسديد بنجاح')

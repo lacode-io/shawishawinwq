@@ -177,19 +177,17 @@ class DispatchNextWhatsAppNotification extends Command
                 return 'الزبون لم يعد فعالاً';
             }
 
-            // إذا الاشعار من نوع "متأخر" بس الزبون ما عاد متأخر
+            // إذا سدد قسط بهل الشهر التقويمي → ما يندز أي إشعار، أياً كان النوع.
+            if ($this->customerPaidThisMonth($notifiable)) {
+                return 'الزبون سدد قسط هذا الشهر';
+            }
+
+            // الاشعار من نوع تأخير بس الزبون ما عاد متأخر
             if (in_array($notification->message_type, [
                 ScheduledNotification::TYPE_OVERDUE,
                 ScheduledNotification::TYPE_ADMIN_ALERT,
-            ], true)) {
-                if (! $notifiable->is_late) {
-                    return 'الزبون لم يعد متأخراً';
-                }
-
-                // إذا سدد قسط هل الشهر التقويمي → ما يندز اشعار حتى لو متأخر بأشهر فاتت
-                if ($this->customerPaidThisMonth($notifiable)) {
-                    return 'الزبون سدد قسط هذا الشهر';
-                }
+            ], true) && ! $notifiable->is_late) {
+                return 'الزبون لم يعد متأخراً';
             }
 
             // إذا نوع "تذكير اليوم" أو "قبل يوم" بس الموعد فات أو ما يطابق
