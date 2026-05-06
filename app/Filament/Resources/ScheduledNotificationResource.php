@@ -169,13 +169,13 @@ class ScheduledNotificationResource extends Resource
                 Tables\Filters\Filter::make('today')
                     ->label('اليوم فقط')
                     ->toggle()
-                    ->query(fn (Builder $q): Builder => $q->whereDate('scheduled_for', now()->toDateString())),
+                    ->query(fn (Builder $query): Builder => $query->whereDate('scheduled_for', now()->toDateString())),
 
                 Tables\Filters\Filter::make('upcoming')
                     ->label('من اليوم وللأمام')
                     ->toggle()
                     ->default()
-                    ->query(fn (Builder $q): Builder => $q->whereDate('scheduled_for', '>=', now()->toDateString())),
+                    ->query(fn (Builder $query): Builder => $query->whereDate('scheduled_for', '>=', now()->toDateString())),
 
                 Tables\Filters\Filter::make('date_range')
                     ->form([

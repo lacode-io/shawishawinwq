@@ -75,7 +75,7 @@ class ListScheduledNotifications extends ListRecords
 
         return [
             'today' => Tab::make('اليوم')
-                ->modifyQueryUsing(fn (Builder $q) => $q->whereDate('scheduled_for', $today))
+                ->modifyQueryUsing(fn (Builder $query) => $query->whereDate('scheduled_for', $today))
                 ->badge(fn () => ScheduledNotification::query()
                     ->whereDate('scheduled_for', $today)
                     ->where('status', ScheduledNotification::STATUS_PENDING)
@@ -83,22 +83,22 @@ class ListScheduledNotifications extends ListRecords
                 ->badgeColor('warning'),
 
             'tomorrow' => Tab::make('باجر')
-                ->modifyQueryUsing(fn (Builder $q) => $q->whereDate('scheduled_for', $tomorrow))
+                ->modifyQueryUsing(fn (Builder $query) => $query->whereDate('scheduled_for', $tomorrow))
                 ->badge(fn () => ScheduledNotification::query()
                     ->whereDate('scheduled_for', $tomorrow)
                     ->count() ?: null),
 
             'upcoming' => Tab::make('القادمة')
-                ->modifyQueryUsing(fn (Builder $q) => $q->whereDate('scheduled_for', '>', $today))
+                ->modifyQueryUsing(fn (Builder $query) => $query->whereDate('scheduled_for', '>', $today))
                 ->badge(fn () => ScheduledNotification::query()
                     ->whereDate('scheduled_for', '>', $today)
                     ->count() ?: null),
 
             'sent' => Tab::make('المرسلة')
-                ->modifyQueryUsing(fn (Builder $q) => $q->where('status', ScheduledNotification::STATUS_SENT)),
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', ScheduledNotification::STATUS_SENT)),
 
             'failed' => Tab::make('الفاشلة')
-                ->modifyQueryUsing(fn (Builder $q) => $q->whereIn('status', [
+                ->modifyQueryUsing(fn (Builder $query) => $query->whereIn('status', [
                     ScheduledNotification::STATUS_FAILED,
                     ScheduledNotification::STATUS_EXPIRED,
                 ]))
