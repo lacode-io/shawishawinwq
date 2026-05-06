@@ -71,13 +71,13 @@ class ManageSettings extends Page implements HasForms
                 ])),
 
             Actions\Action::make('runDailyRemindersNow')
-                ->label('تشغيل التذكيرات اليومية الآن')
+                ->label('تخطيط اشعارات اليوم الآن')
                 ->icon('heroicon-o-bolt')
                 ->color('warning')
                 ->requiresConfirmation()
-                ->modalHeading('تشغيل التذكيرات اليومية يدوياً')
-                ->modalDescription('سيتم تشغيل أمر whatsapp:send-reminders فوراً وادراج الجوبس المطابقة لليوم في الطابور.')
-                ->modalSubmitActionLabel('تشغيل الآن')
+                ->modalHeading('تخطيط اشعارات اليوم يدوياً')
+                ->modalDescription('سيتم تشغيل whatsapp:plan-day فوراً وحساب الاشعارات المستحقة اليوم وإدراجها بانتظار الإرسال. الاشعارات تنرسل تدريجياً عبر المهمة المجدولة كل دقيقة.')
+                ->modalSubmitActionLabel('تخطيط الآن')
                 ->action(function (): void {
                     $this->runDailyRemindersNow();
                 }),
@@ -98,12 +98,12 @@ class ManageSettings extends Page implements HasForms
 
     protected function runDailyRemindersNow(): void
     {
-        $exitCode = \Illuminate\Support\Facades\Artisan::call('whatsapp:send-reminders');
+        $exitCode = \Illuminate\Support\Facades\Artisan::call('whatsapp:plan-day');
         $output = trim(\Illuminate\Support\Facades\Artisan::output());
 
         if ($exitCode !== 0) {
             Notification::make()
-                ->title('فشل تشغيل التذكيرات')
+                ->title('فشل تخطيط الاشعارات')
                 ->body($output ?: 'حدث خطأ غير معروف.')
                 ->danger()
                 ->send();
@@ -112,8 +112,8 @@ class ManageSettings extends Page implements HasForms
         }
 
         Notification::make()
-            ->title('تم تشغيل التذكيرات اليومية')
-            ->body($output ?: 'لا يوجد زبائن مطابقين اليوم.')
+            ->title('تم تخطيط اشعارات اليوم')
+            ->body('سيتم إرسالها تدريجياً عبر المهمة المجدولة كل دقيقة. يمكنك متابعتها من صفحة "الاشعارات".')
             ->success()
             ->send();
     }

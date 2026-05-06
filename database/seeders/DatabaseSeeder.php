@@ -51,6 +51,7 @@ class DatabaseSeeder extends Seeder
             'view_app_notes', 'create_app_notes', 'update_app_notes', 'delete_app_notes',
             'view_activity_log', 'manage_settings', 'export_pdf',
             'view_finance_dashboard', 'view_targets', 'mark_completed',
+            'view_scheduled_notifications', 'manage_scheduled_notifications',
         ];
 
         foreach ($permissions as $permission) {
@@ -71,6 +72,7 @@ class DatabaseSeeder extends Seeder
             'view_finance_closings', 'create_finance_closings', 'update_finance_closings',
             'view_app_notes', 'create_app_notes', 'update_app_notes',
             'view_finance_dashboard', 'view_targets', 'mark_completed',
+            'view_scheduled_notifications', 'manage_scheduled_notifications',
             'export_pdf',
         ]);
 
@@ -80,6 +82,7 @@ class DatabaseSeeder extends Seeder
             'view_investors', 'view_investor_payouts',
             'view_expenses', 'view_finance_closings',
             'view_app_notes',
+            'view_scheduled_notifications',
             'view_activity_log', 'view_finance_dashboard', 'view_targets',
         ]);
 
