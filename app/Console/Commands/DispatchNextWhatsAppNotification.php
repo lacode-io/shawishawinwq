@@ -137,6 +137,16 @@ class DispatchNextWhatsAppNotification extends Command
         }
     }
 
+    private function customerPaidThisMonth(\App\Models\Customer $customer): bool
+    {
+        $now = now();
+
+        return $customer->payments()
+            ->whereYear('paid_at', $now->year)
+            ->whereMonth('paid_at', $now->month)
+            ->exists();
+    }
+
     private function buildMessage(ScheduledNotification $notification, $notifiable): ?string
     {
         return match ($notification->message_type) {
@@ -168,8 +178,18 @@ class DispatchNextWhatsAppNotification extends Command
             }
 
             // إذا الاشعار من نوع "متأخر" بس الزبون ما عاد متأخر
-            if ($notification->message_type === ScheduledNotification::TYPE_OVERDUE && ! $notifiable->is_late) {
-                return 'الزبون لم يعد متأخراً';
+            if (in_array($notification->message_type, [
+                ScheduledNotification::TYPE_OVERDUE,
+                ScheduledNotification::TYPE_ADMIN_ALERT,
+            ], true)) {
+                if (! $notifiable->is_late) {
+                    return 'الزبون لم يعد متأخراً';
+                }
+
+                // إذا سدد قسط هل الشهر التقويمي → ما يندز اشعار حتى لو متأخر بأشهر فاتت
+                if ($this->customerPaidThisMonth($notifiable)) {
+                    return 'الزبون سدد قسط هذا الشهر';
+                }
             }
 
             // إذا نوع "تذكير اليوم" أو "قبل يوم" بس الموعد فات أو ما يطابق

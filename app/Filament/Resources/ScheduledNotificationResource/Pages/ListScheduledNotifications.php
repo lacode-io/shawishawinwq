@@ -65,6 +65,25 @@ class ListScheduledNotifications extends ListRecords
                         ->{$exitCode === 0 ? 'success' : 'danger'}()
                         ->send();
                 }),
+
+            Actions\Action::make('delete_all')
+                ->label('حذف كل الاشعارات')
+                ->icon('heroicon-o-trash')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('حذف كل الاشعارات')
+                ->modalDescription('سيتم حذف كل سجلات الاشعارات (المعلقة والمرسلة والفاشلة). هذا الإجراء لا يمكن التراجع عنه.')
+                ->modalSubmitActionLabel('نعم، احذف الكل')
+                ->visible(fn (): bool => auth()->user()?->hasPermissionTo('manage_scheduled_notifications'))
+                ->action(function (): void {
+                    $count = ScheduledNotification::query()->count();
+                    ScheduledNotification::query()->delete();
+
+                    Notification::make()
+                        ->title("تم حذف {$count} اشعار")
+                        ->success()
+                        ->send();
+                }),
         ];
     }
 

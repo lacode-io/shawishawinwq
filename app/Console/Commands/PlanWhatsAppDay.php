@@ -83,8 +83,8 @@ class PlanWhatsAppDay extends Command
                 continue;
             }
 
-            // متأخر
-            if ($dueDay->lt($date) && $customer->is_late) {
+            // متأخر — بس إذا ما سدد ولا قسط بهل الشهر التقويمي
+            if ($dueDay->lt($date) && $customer->is_late && ! $this->hasPaidThisMonth($customer, $date)) {
                 $created = $this->schedule(
                     $date,
                     ScheduledNotification::TYPE_OVERDUE,
@@ -178,5 +178,17 @@ class PlanWhatsAppDay extends Command
         $config = Setting::instance()->whatsapp_provider_config ?? [];
 
         return $config['admin_phone'] ?? null;
+    }
+
+    /**
+     * يفحص إذا الزبون سدد أي قسط بالشهر التقويمي الحالي.
+     * Why: حتى ما يندز تنبيه تأخير لزبون سدد قسط هل الشهر، حتى لو متأخر بأشهر فاتت.
+     */
+    private function hasPaidThisMonth(Customer $customer, Carbon $date): bool
+    {
+        return $customer->payments()
+            ->whereYear('paid_at', $date->year)
+            ->whereMonth('paid_at', $date->month)
+            ->exists();
     }
 }
