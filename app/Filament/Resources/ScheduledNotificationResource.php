@@ -92,10 +92,10 @@ class ScheduledNotificationResource extends Resource
                             ? 'باجر'
                             : $r->scheduled_for->translatedFormat('l'))),
 
-                Tables\Columns\TextColumn::make('notifiable.full_name')
+                Tables\Columns\TextColumn::make('notifiable_id')
                     ->label('الزبون')
-                    ->searchable(['full_name'])
                     ->placeholder('-')
+                    ->getStateUsing(fn (ScheduledNotification $r): ?string => $r->notifiable?->full_name)
                     ->description(fn (ScheduledNotification $r): ?string => $r->notifiable?->phone),
 
                 Tables\Columns\TextColumn::make('to_phone')
